@@ -372,6 +372,8 @@ export default function Streams() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>序号</TableHead>
+                      <TableHead>创建时间</TableHead>
                       <TableHead>用户UID</TableHead>
                       <TableHead>用户名称</TableHead>
                       <TableHead>观看时长</TableHead>
@@ -380,11 +382,17 @@ export default function Streams() {
                       <TableHead>精选贴数</TableHead>
                       <TableHead>P_Eco得分</TableHead>
                       <TableHead>日期</TableHead>
+                      <TableHead>操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockAudienceContributions.map((contribution) => (
+                    {mockAudienceContributions.map((contribution, index) => {
+                      const globalIndex = mockAudienceContributions.length - index;
+                      const timestamp = new Date(`${contribution.date}T${10 + index}:${15 + index}:${30 + index}`);
+                      return (
                       <TableRow key={contribution.id}>
+                        <TableCell className="font-mono">{globalIndex}</TableCell>
+                        <TableCell>{timestamp.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\//g, '/')}</TableCell>
                         <TableCell className="font-mono">{contribution.userId}</TableCell>
                         <TableCell className="font-medium">{contribution.userName}</TableCell>
                         <TableCell>
@@ -422,8 +430,20 @@ export default function Streams() {
                           </Badge>
                         </TableCell>
                         <TableCell>{contribution.date}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              toast.info("冻结功能开发中");
+                            }}
+                          >
+                            冻结
+                          </Button>
+                        </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

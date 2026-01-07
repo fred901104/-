@@ -13,6 +13,7 @@ import { AlertCircle, CheckCircle, Clock, XCircle, FileText, Download } from "lu
 import { exportToExcel, formatTicketForExport } from "@/lib/export";
 import { useState, useMemo, useEffect } from "react";
 import { Pagination } from "@/components/Pagination";
+import { SortableTableHead, SortDirection } from "@/components/SortableTableHead";
 import { toast } from "sonner";
 
 const priorityLabels = {
@@ -48,7 +49,29 @@ export default function Tickets() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
+  
+  // 排序状态
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      // 切换排序方向：null -> asc -> desc -> null
+      if (sortDirection === null) {
+        setSortDirection("asc");
+      } else if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else {
+        setSortKey(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: "", end: "" });
   
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,6 +83,18 @@ export default function Tickets() {
     if (filterType !== "all" && ticket.type !== filterType) return false;
     if (filterStatus !== "all" && ticket.status !== filterStatus) return false;
     if (filterPriority !== "all" && ticket.priority !== filterPriority) return false;
+    
+    // 日期筛选
+    if (dateRange.start || dateRange.end) {
+      const ticketDate = new Date(ticket.createdAt);
+      if (dateRange.start && ticketDate < new Date(dateRange.start)) return false;
+      if (dateRange.end) {
+        const endDate = new Date(dateRange.end);
+        endDate.setHours(23, 59, 59, 999); // 包含结束日当天
+        if (ticketDate > endDate) return false;
+      }
+    }
+    
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
@@ -71,19 +106,47 @@ export default function Tickets() {
     return true;
   }) || [];
   
+  // 排序逻辑
+  const sortedTickets = useMemo(() => {
+    if (!sortKey || !sortDirection) return filteredTickets;
+    
+    return [...filteredTickets].sort((a, b) => {
+      const ticket_a = a.ticket;
+      const ticket_b = b.ticket;
+      let compareValue = 0;
+      
+      switch (sortKey) {
+        case "priority":
+          const priorityOrder = { p0: 0, p1: 1, p2: 2, p3: 3 };
+          compareValue = priorityOrder[ticket_a.priority as keyof typeof priorityOrder] - priorityOrder[ticket_b.priority as keyof typeof priorityOrder];
+          break;
+        case "finalScore":
+          compareValue = (ticket_a.finalScore || 0) - (ticket_b.finalScore || 0);
+          break;
+        case "createdAt":
+          compareValue = new Date(ticket_a.createdAt).getTime() - new Date(ticket_b.createdAt).getTime();
+          break;
+        default:
+          return 0;
+      }
+      
+      return sortDirection === "asc" ? compareValue : -compareValue;
+    });
+  }, [filteredTickets, sortKey, sortDirection]);
+  
   // 分页逻辑
   const paginatedTickets = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    return filteredTickets.slice(startIndex, endIndex);
-  }, [filteredTickets, currentPage, pageSize]);
+    return sortedTickets.slice(startIndex, endIndex);
+  }, [sortedTickets, currentPage, pageSize]);
   
-  const totalPages = Math.ceil(filteredTickets.length / pageSize);
+  const totalPages = Math.ceil(sortedTickets.length / pageSize);
   
   // 当筛选条件改变时重置到第一页
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterType, filterStatus, filterPriority, searchQuery]);
+  }, [filterType, filterStatus, filterPriority, searchQuery, dateRange]);
 
   const handleReview = async (status: "approved" | "rejected") => {
     if (!selectedTicket) return;
@@ -185,7 +248,7 @@ export default function Tickets() {
           <CardTitle>筛选和搜索</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label>工单类型</Label>
               <Select value={filterType} onValueChange={setFilterType}>
@@ -233,6 +296,25 @@ export default function Tickets() {
             </div>
             
             <div className="space-y-2">
+              <Label>日期范围</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="date"
+                  value={dateRange.start}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                  placeholder="开始日期"
+                />
+                <span className="flex items-center">至</span>
+                <Input
+                  type="date"
+                  value={dateRange.end}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                  placeholder="结束日期"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
               <Label>搜索</Label>
               <div className="flex gap-2">
                 <Input
@@ -247,6 +329,7 @@ export default function Tickets() {
                     setFilterStatus("all");
                     setFilterPriority("all");
                     setSearchQuery("");
+                    setDateRange({ start: "", end: "" });
                   }}
                 >
                   重置
@@ -284,16 +367,37 @@ export default function Tickets() {
                   <TableHead>内容</TableHead>
                   <TableHead>工单号</TableHead>
                   <TableHead>提交人</TableHead>
-                  <TableHead>BUG等级（可修改）</TableHead>
+                  <SortableTableHead 
+                    sortKey="priority" 
+                    currentSortKey={sortKey} 
+                    currentSortDirection={sortDirection} 
+                    onSort={handleSort}
+                  >
+                    BUG等级
+                  </SortableTableHead>
                   <TableHead>状态</TableHead>
-                  <TableHead>释放积分</TableHead>
-                  <TableHead>提交时间</TableHead>
+                  <SortableTableHead 
+                    sortKey="finalScore" 
+                    currentSortKey={sortKey} 
+                    currentSortDirection={sortDirection} 
+                    onSort={handleSort}
+                  >
+                    释放积分
+                  </SortableTableHead>
+                  <SortableTableHead 
+                    sortKey="createdAt" 
+                    currentSortKey={sortKey} 
+                    currentSortDirection={sortDirection} 
+                    onSort={handleSort}
+                  >
+                    提交时间
+                  </SortableTableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedTickets?.map((item, index) => {
-                  const globalIndex = filteredTickets.length - ((currentPage - 1) * pageSize + index);
+                  const globalIndex = sortedTickets.length - ((currentPage - 1) * pageSize + index);
                   const ticket = item.ticket;
                   const user = item.user;
                   const TypeIcon = typeLabels[ticket.type as keyof typeof typeLabels]?.icon;

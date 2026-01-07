@@ -120,20 +120,20 @@ export function FilterBar({ config, values, onChange, onReset }: FilterBarProps)
 
             {/* Date Range */}
             {config.showDateRange && (
-              <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">开始日期</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">日期范围</label>
+                <div className="flex gap-2 items-center">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "flex-1 justify-start text-left font-normal",
                           !values.dateFrom && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {values.dateFrom ? format(values.dateFrom, "yyyy-MM-dd") : "选择日期"}
+                        {values.dateFrom ? format(values.dateFrom, "yyyy-MM-dd") : "开始日期"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -145,21 +145,20 @@ export function FilterBar({ config, values, onChange, onReset }: FilterBarProps)
                       />
                     </PopoverContent>
                   </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">结束日期</label>
+                  
+                  <span className="text-muted-foreground">至</span>
+                  
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "flex-1 justify-start text-left font-normal",
                           !values.dateTo && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {values.dateTo ? format(values.dateTo, "yyyy-MM-dd") : "选择日期"}
+                        {values.dateTo ? format(values.dateTo, "yyyy-MM-dd") : "结束日期"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -172,7 +171,7 @@ export function FilterBar({ config, values, onChange, onReset }: FilterBarProps)
                     </PopoverContent>
                   </Popover>
                 </div>
-              </>
+              </div>
             )}
           </div>
 
