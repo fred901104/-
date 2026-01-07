@@ -7,8 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilterBar, FilterConfig, FilterValues } from "@/components/FilterBar";
-import { AlertCircle, CheckCircle, Lock, Unlock, TrendingUp, DollarSign, Clock, AlertTriangle, Download } from "lucide-react";
-import { exportToExcel, formatTradeForExport } from "@/lib/export";
+import { AlertCircle, CheckCircle, Lock, Unlock, TrendingUp, DollarSign, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Trades() {
@@ -102,28 +101,11 @@ export default function Trades() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold">P_Trade 交易积分账本</h1>
-          <p className="text-muted-foreground mt-1">
-            监控交易数据、积分计算和风控检测
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            if (!trades || trades.length === 0) {
-              toast.error("没有可导出的数据");
-              return;
-            }
-            const exportData = trades.map(formatTradeForExport);
-            exportToExcel(exportData, `交易记录_${new Date().toLocaleDateString("zh-CN")}`, "交易数据");
-            toast.success("导出成功！");
-          }}
-          className="gap-2"
-        >
-          <Download className="h-4 w-4" />
-          导出Excel
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold">P_Trade 交易积分账本</h1>
+        <p className="text-muted-foreground mt-1">
+          监控交易数据、积分计算和风控检测
+        </p>
       </div>
 
       {/* Filter Bar */}

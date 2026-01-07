@@ -8,9 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilterBar, FilterConfig, FilterValues } from "@/components/FilterBar";
-import { Radio, Users, Clock, MessageSquare, DollarSign, Star, TrendingUp, Activity, Download } from "lucide-react";
-import { exportToExcel, formatStreamForExport } from "@/lib/export";
-import { toast } from "sonner";
+import { Radio, Users, Clock, MessageSquare, DollarSign, Star, TrendingUp, Activity } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 
 export default function Streams() {
@@ -136,28 +134,11 @@ export default function Streams() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold">P_Eco 直播监控台</h1>
-          <p className="text-muted-foreground mt-1">
-            监控主播直播数据、观众贡献和P_Eco积分计算
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            if (!streams || streams.length === 0) {
-              toast.error("没有可导出的数据");
-              return;
-            }
-            const exportData = streams.map(formatStreamForExport);
-            exportToExcel(exportData, `直播记录_${new Date().toLocaleDateString("zh-CN")}`, "直播数据");
-            toast.success("导出成功！");
-          }}
-          className="gap-2"
-        >
-          <Download className="h-4 w-4" />
-          导出Excel
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold">P_Eco 直播监控台</h1>
+        <p className="text-muted-foreground mt-1">
+          监控主播直播数据、观众贡献和P_Eco积分计算
+        </p>
       </div>
 
       {/* Filter Bar */}

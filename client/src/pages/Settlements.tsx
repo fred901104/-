@@ -3,7 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calculator, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import { Calculator, CheckCircle, Clock, TrendingUp, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { exportToExcel, formatSettlementForExport } from "@/lib/export";
+import { toast } from "sonner";
 
 export default function Settlements() {
   const { data: settlements, isLoading } = trpc.settlements.list.useQuery();
@@ -24,11 +27,28 @@ export default function Settlements() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">结算与发放中心</h1>
-        <p className="text-muted-foreground mt-2">
-          管理每周积分结算、数据回滚和积分发放流程
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">结算与发放中心</h1>
+          <p className="text-muted-foreground mt-2">
+            管理每周积分结算、数据回滚和积分发放流程
+          </p>
+        </div>
+        <Button
+          onClick={() => {
+            if (!settlements || settlements.length === 0) {
+              toast.error("没有可导出的数据");
+              return;
+            }
+            const exportData = settlements.map(formatSettlementForExport);
+            exportToExcel(exportData, `结算报表_${new Date().toLocaleDateString("zh-CN")}`, "结算记录");
+            toast.success("导出成功！");
+          }}
+          className="gap-2"
+        >
+          <Download className="h-4 w-4" />
+          导出Excel
+        </Button>
       </div>
 
       {/* Stats */}

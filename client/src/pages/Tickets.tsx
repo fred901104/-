@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertCircle, CheckCircle, Clock, XCircle, FileText } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, XCircle, FileText, Download } from "lucide-react";
+import { exportToExcel, formatTicketForExport } from "@/lib/export";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -76,11 +77,28 @@ export default function Tickets() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">P_Genesis 工单管理</h1>
-        <p className="text-muted-foreground mt-2">
-          审核用户提交的Bug、建议和必要信息，进行定级打分并发放积分
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">P_Genesis 工单管理</h1>
+          <p className="text-muted-foreground mt-2">
+            审核用户提交的Bug、建议和必要信息，进行定级打分并发放积分
+          </p>
+        </div>
+        <Button
+          onClick={() => {
+            if (!tickets || tickets.length === 0) {
+              toast.error("没有可导出的数据");
+              return;
+            }
+            const exportData = tickets.map(formatTicketForExport);
+            exportToExcel(exportData, `工单列表_${new Date().toLocaleDateString("zh-CN")}`, "工单记录");
+            toast.success("导出成功！");
+          }}
+          className="gap-2"
+        >
+          <Download className="h-4 w-4" />
+          导出Excel
+        </Button>
       </div>
 
       {/* Stats */}
