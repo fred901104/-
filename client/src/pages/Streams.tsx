@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilterBar, FilterConfig, FilterValues } from "@/components/FilterBar";
 import { Pagination } from "@/components/Pagination";
+import { SortableTableHead, SortDirection } from "@/components/SortableTableHead";
 import { Radio, Users, Clock, MessageSquare, DollarSign, Star, TrendingUp, Activity, Download } from "lucide-react";
 import { exportToExcel, formatStreamForExport } from "@/lib/export";
 import { toast } from "sonner";
@@ -22,6 +23,26 @@ export default function Streams() {
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  
+  // 排序状态
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      if (sortDirection === null) {
+        setSortDirection("asc");
+      } else if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else {
+        setSortKey(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
 
   const { data: streams, isLoading } = trpc.streams.list.useQuery();
 
@@ -104,15 +125,54 @@ export default function Streams() {
     return score.toFixed(2);
   };
 
+  // 排序逻辑
+  const sortedStreams = useMemo(() => {
+    if (!streams || !sortKey || !sortDirection) return streams || [];
+    
+    const sorted = [...streams].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      
+      switch (sortKey) {
+        case "duration":
+          aValue = a.stream.duration || 0;
+          bValue = b.stream.duration || 0;
+          break;
+        case "avgCcu":
+          aValue = a.stream.avgCcu || 0;
+          bValue = b.stream.avgCcu || 0;
+          break;
+        case "score":
+          aValue = parseFloat(calculateCreatorScore(a.stream));
+          bValue = parseFloat(calculateCreatorScore(b.stream));
+          break;
+        case "startTime":
+          aValue = new Date(a.stream.startTime).getTime();
+          bValue = new Date(b.stream.startTime).getTime();
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortDirection === "asc") {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+    
+    return sorted;
+  }, [streams, sortKey, sortDirection]);
+  
   // 分页逻辑
   const paginatedStreams = useMemo(() => {
-    if (!streams) return [];
+    if (!sortedStreams) return [];
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    return streams.slice(startIndex, endIndex);
-  }, [streams, currentPage, pageSize]);
+    return sortedStreams.slice(startIndex, endIndex);
+  }, [sortedStreams, currentPage, pageSize]);
   
-  const totalPages = Math.ceil((streams?.length || 0) / pageSize);
+  const totalPages = Math.ceil((sortedStreams?.length || 0) / pageSize);
 
   const mockAudienceContributions = [
     {
@@ -216,15 +276,43 @@ export default function Streams() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[60px]">序号</TableHead>
-                        <TableHead>开播时间</TableHead>
+                        <SortableTableHead
+                          sortKey="startTime"
+                          currentSortKey={sortKey}
+                          currentSortDirection={sortDirection}
+                          onSort={handleSort}
+                        >
+                          开播时间
+                        </SortableTableHead>
                         <TableHead>主播UID</TableHead>
                         <TableHead>主播名称</TableHead>
-                        <TableHead>直播时长</TableHead>
-                        <TableHead>平均CCU</TableHead>
+                        <SortableTableHead
+                          sortKey="duration"
+                          currentSortKey={sortKey}
+                          currentSortDirection={sortDirection}
+                          onSort={handleSort}
+                        >
+                          直播时长
+                        </SortableTableHead>
+                        <SortableTableHead
+                          sortKey="avgCcu"
+                          currentSortKey={sortKey}
+                          currentSortDirection={sortDirection}
+                          onSort={handleSort}
+                        >
+                          平均CCU
+                        </SortableTableHead>
                         <TableHead>聊天条数</TableHead>
                         <TableHead>打赏手续费</TableHead>
                         <TableHead>精选贴数</TableHead>
-                        <TableHead>P_Eco得分</TableHead>
+                        <SortableTableHead
+                          sortKey="score"
+                          currentSortKey={sortKey}
+                          currentSortDirection={sortDirection}
+                          onSort={handleSort}
+                        >
+                          P_Eco得分
+                        </SortableTableHead>
                         <TableHead>状态</TableHead>
                         <TableHead>操作</TableHead>
                       </TableRow>

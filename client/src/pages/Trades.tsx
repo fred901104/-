@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilterBar, FilterConfig, FilterValues } from "@/components/FilterBar";
 import { Pagination } from "@/components/Pagination";
+import { SortableTableHead, SortDirection } from "@/components/SortableTableHead";
 import { AlertCircle, CheckCircle, Lock, Unlock, TrendingUp, DollarSign, Clock, AlertTriangle, Download } from "lucide-react";
 import { exportToExcel, formatTradeForExport } from "@/lib/export";
 import { toast } from "sonner";
@@ -21,6 +22,26 @@ export default function Trades() {
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  
+  // 排序状态
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      if (sortDirection === null) {
+        setSortDirection("asc");
+      } else if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else {
+        setSortKey(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
 
   const { data: trades, isLoading } = trpc.trades.list.useQuery();
   const freezeMutation = trpc.trades.freeze.useMutation();
@@ -49,15 +70,50 @@ export default function Trades() {
     showDateRange: true,
   };
 
+  // 排序逻辑
+  const sortedTrades = useMemo(() => {
+    if (!trades || !sortKey || !sortDirection) return trades || [];
+    
+    const sorted = [...trades].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      
+      switch (sortKey) {
+        case "volume":
+          aValue = a.trade.volume || 0;
+          bValue = b.trade.volume || 0;
+          break;
+        case "feeAmount":
+          aValue = a.trade.feeAmount || 0;
+          bValue = b.trade.feeAmount || 0;
+          break;
+        case "createdAt":
+          aValue = new Date(a.trade.createdAt).getTime();
+          bValue = new Date(b.trade.createdAt).getTime();
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortDirection === "asc") {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+    
+    return sorted;
+  }, [trades, sortKey, sortDirection]);
+  
   // 分页逻辑
   const paginatedTrades = useMemo(() => {
-    if (!trades) return [];
+    if (!sortedTrades) return [];
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    return trades.slice(startIndex, endIndex);
-  }, [trades, currentPage, pageSize]);
+    return sortedTrades.slice(startIndex, endIndex);
+  }, [sortedTrades, currentPage, pageSize]);
   
-  const totalPages = Math.ceil((trades?.length || 0) / pageSize);
+  const totalPages = Math.ceil((sortedTrades?.length || 0) / pageSize);
 
   // 模拟冻结记录数据
   const mockFrozenRecords = [
@@ -228,12 +284,33 @@ export default function Trades() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[60px]">序号</TableHead>
-                    <TableHead>交易时间</TableHead>
+                    <SortableTableHead
+                      sortKey="createdAt"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      交易时间
+                    </SortableTableHead>
                     <TableHead>用户UID</TableHead>
                     <TableHead>交易类型</TableHead>
                     <TableHead>交易对</TableHead>
-                    <TableHead>交易量</TableHead>
-                    <TableHead>手续费</TableHead>
+                    <SortableTableHead
+                      sortKey="volume"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      交易量
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="feeAmount"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      手续费
+                    </SortableTableHead>
                     <TableHead>持仓时长</TableHead>
                     <TableHead>有效开单</TableHead>
                     <TableHead>计算积分</TableHead>

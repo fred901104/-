@@ -39,11 +39,11 @@ export default function Dashboard() {
   const todayGrowth = calculateGrowth(overview?.todayPoints || 0, 850);
   const activeUsersGrowth = calculateGrowth(overview?.participantUsers || 0, 95);
 
-  // 准备饼图数据
-  const pieData = overview?.totalPoints ? [
-    { name: "P_Genesis", value: overview.totalPoints.genesis, percent: config?.pGenesisPercent || 40 },
-    { name: "P_Eco", value: overview.totalPoints.eco, percent: config?.pEcoPercent || 40 },
-    { name: "P_Trade", value: overview.totalPoints.trade, percent: config?.pTradePercent || 20 },
+  // 准备饼图数据（显示各池已产出积分占周期目标的百分比）
+  const pieData = overview?.poolRatios ? [
+    { name: "P_Genesis", value: overview.totalPoints.genesis, percent: overview.poolRatios.genesis.toFixed(1) },
+    { name: "P_Eco", value: overview.totalPoints.eco, percent: overview.poolRatios.eco.toFixed(1) },
+    { name: "P_Trade", value: overview.totalPoints.trade, percent: overview.poolRatios.trade.toFixed(1) },
   ] : [];
 
   // 准备趋势图数据（模拟数据，实际应从API获取）

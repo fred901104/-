@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Users as UsersIcon, TrendingUp, Award, History, Plus, Minus, Ban, CheckCircle, Search } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
+import { SortableTableHead, SortDirection } from "@/components/SortableTableHead";
 import { toast } from "sonner";
 
 export default function Users() {
@@ -20,6 +21,26 @@ export default function Users() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all");
   const [blacklistFilter, setBlacklistFilter] = useState<"all" | "0" | "1">("all");
+  
+  // 排序状态
+  const [sortKey, setSortKey] = useState<"spotTradingVolume" | "futuresTradingVolume" | "totalStreamingMinutes" | "totalWatchingMinutes" | "createdAt" | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      if (sortDirection === null) {
+        setSortDirection("asc");
+      } else if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else {
+        setSortKey(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortKey(key as any);
+      setSortDirection("asc");
+    }
+  };
   
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
@@ -37,6 +58,8 @@ export default function Users() {
     search: search || undefined,
     role: roleFilter !== "all" ? roleFilter : undefined,
     isBlacklisted: blacklistFilter !== "all" ? blacklistFilter : undefined,
+    sortKey: sortKey || undefined,
+    sortDirection: sortDirection || undefined,
   });
 
   const users = data?.users || [];
@@ -263,13 +286,48 @@ export default function Users() {
                     <TableHead>登录方式</TableHead>
                     <TableHead>绑定X</TableHead>
                     <TableHead>认证主播</TableHead>
-                    <TableHead>现货交易量</TableHead>
-                    <TableHead>合约交易量</TableHead>
-                    <TableHead>开播时长</TableHead>
-                    <TableHead>观看时长</TableHead>
+                    <SortableTableHead
+                      sortKey="spotTradingVolume"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      现货交易量
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="futuresTradingVolume"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      合约交易量
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="totalStreamingMinutes"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      开播时长
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="totalWatchingMinutes"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      观看时长
+                    </SortableTableHead>
                     <TableHead>发帖数</TableHead>
                     <TableHead>状态</TableHead>
-                    <TableHead>注册时间</TableHead>
+                    <SortableTableHead
+                      sortKey="createdAt"
+                      currentSortKey={sortKey}
+                      currentSortDirection={sortDirection}
+                      onSort={handleSort}
+                    >
+                      注册时间
+                    </SortableTableHead>
                     <TableHead>操作</TableHead>
                   </TableRow>
                 </TableHeader>

@@ -47,11 +47,40 @@ export const appRouter = router({
         count: sql<number>`COUNT(DISTINCT ${pointsRecords.userId})`
       }).from(pointsRecords);
       
+      // 获取当前阶段的积分配置
+      const { pointsConfigs } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      
+      const activeConfig = await dbInstance.select()
+        .from(pointsConfigs)
+        .where(eq(pointsConfigs.isActive, 1))
+        .limit(1);
+      
+      let poolRatios = { genesis: 40, eco: 40, trade: 20 }; // 默认配置比例
+      
+      if (activeConfig.length > 0) {
+        const config = activeConfig[0];
+        const weeklyTarget = config.weeklyPointsTarget;
+        
+        // 计算各池的周期目标积分
+        const genesisTarget = weeklyTarget * (parseFloat(config.pGenesisPercent) / 100);
+        const ecoTarget = weeklyTarget * (parseFloat(config.pEcoPercent) / 100);
+        const tradeTarget = weeklyTarget * (parseFloat(config.pTradePercent) / 100);
+        
+        // 计算各池实际已产出积分占比
+        poolRatios = {
+          genesis: genesisTarget > 0 ? Math.min((totalPoints.genesis / genesisTarget) * 100, 100) : 0,
+          eco: ecoTarget > 0 ? Math.min((totalPoints.eco / ecoTarget) * 100, 100) : 0,
+          trade: tradeTarget > 0 ? Math.min((totalPoints.trade / tradeTarget) * 100, 100) : 0,
+        };
+      }
+      
       return {
         totalPoints,
         todayPoints: Number(todayPoints[0]?.total || 0),
         totalUsers: Number(totalUsers[0]?.count || 0),
         participantUsers: Number(participantUsers[0]?.count || 0),
+        poolRatios, // 各池已产出积分占周期目标的百分比
       };
     }),
     
@@ -373,6 +402,8 @@ export const appRouter = router({
         search: z.string().optional(),
         role: z.enum(["all", "admin", "user"]).optional(),
         isBlacklisted: z.enum(["all", "0", "1"]).optional(),
+        sortKey: z.enum(["spotTradingVolume", "futuresTradingVolume", "totalStreamingMinutes", "totalWatchingMinutes", "createdAt"]).optional(),
+        sortDirection: z.enum(["asc", "desc"]).optional(),
       }).optional())
       .query(async ({ input }) => {
         const { getDb } = await import("./db");
@@ -408,10 +439,40 @@ export const appRouter = router({
         const total = totalResult[0]?.count || 0;
         
         // 获取分页数据
+        const { asc } = await import("drizzle-orm");
+        
+        // 构建排序
+        let orderByClause;
+        if (input?.sortKey && input?.sortDirection) {
+          let sortField;
+          switch (input.sortKey) {
+            case "spotTradingVolume":
+              sortField = users.spotTradingVolume;
+              break;
+            case "futuresTradingVolume":
+              sortField = users.futuresTradingVolume;
+              break;
+            case "totalStreamingMinutes":
+              sortField = users.totalStreamingMinutes;
+              break;
+            case "totalWatchingMinutes":
+              sortField = users.totalWatchingMinutes;
+              break;
+            case "createdAt":
+              sortField = users.createdAt;
+              break;
+            default:
+              sortField = users.createdAt;
+          }
+          orderByClause = input.sortDirection === "asc" ? asc(sortField) : desc(sortField);
+        } else {
+          orderByClause = desc(users.createdAt);
+        }
+        
         const usersList = await db.select()
           .from(users)
           .where(whereClause)
-          .orderBy(desc(users.createdAt))
+          .orderBy(orderByClause)
           .limit(pageSize)
           .offset(offset);
         

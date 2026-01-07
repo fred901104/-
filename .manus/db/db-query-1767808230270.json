@@ -1,0 +1,58 @@
+{
+  "query": "SELECT * FROM points_configs LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2KMpFtxdhMwESN4.root --database h7v6obutbNu2TWm3TCgiTk --execute SELECT * FROM points_configs LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "phase": "S0 Alpha",
+      "p_genesis_percent": "40.00",
+      "p_eco_percent": "40.00",
+      "p_trade_percent": "20.00",
+      "is_active": "1",
+      "created_by": "1",
+      "created_at": "2026-01-07 15:11:30",
+      "updated_at": "2026-01-07 15:11:30",
+      "weekly_points_target": "0"
+    },
+    {
+      "id": "2",
+      "phase": "S0",
+      "p_genesis_percent": "40",
+      "p_eco_percent": "40",
+      "p_trade_percent": "20",
+      "is_active": "1",
+      "created_by": "1",
+      "created_at": "2026-01-07 16:23:57",
+      "updated_at": "2026-01-07 16:23:57",
+      "weekly_points_target": "100000"
+    },
+    {
+      "id": "3",
+      "phase": "S0",
+      "p_genesis_percent": "40",
+      "p_eco_percent": "40",
+      "p_trade_percent": "20",
+      "is_active": "1",
+      "created_by": "1",
+      "created_at": "2026-01-07 16:24:35",
+      "updated_at": "2026-01-07 16:24:35",
+      "weekly_points_target": "100000"
+    },
+    {
+      "id": "4",
+      "phase": "S0",
+      "p_genesis_percent": "40",
+      "p_eco_percent": "40",
+      "p_trade_percent": "20",
+      "is_active": "1",
+      "created_by": "1",
+      "created_at": "2026-01-07 16:25:30",
+      "updated_at": "2026-01-07 16:25:30",
+      "weekly_points_target": "100000"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tphase\tp_genesis_percent\tp_eco_percent\tp_trade_percent\tis_active\tcreated_by\tcreated_at\tupdated_at\tweekly_points_target\n1\tS0 Alpha\t40.00\t40.00\t20.00\t1\t1\t2026-01-07 15:11:30\t2026-01-07 15:11:30\t0\n2\tS0\t40\t40\t20\t1\t1\t2026-01-07 16:23:57\t2026-01-07 16:23:57\t100000\n3\tS0\t40\t40\t20\t1\t1\t2026-01-07 16:24:35\t2026-01-07 16:24:35\t100000\n4\tS0\t40\t40\t20\t1\t1\t2026-01-07 16:25:30\t2026-01-07 16:25:30\t100000\n",
+  "stderr": "",
+  "execution_time_ms": 1528
+}
