@@ -58,13 +58,13 @@ export const appRouter = router({
       const { sql } = await import("drizzle-orm");
       
       const trends = await db.select({
-        date: sql<string>`DATE(${pointsRecords.createdAt})`,
-        genesis: sql<number>`SUM(CASE WHEN ${pointsRecords.type} = 'genesis' THEN ${pointsRecords.amount} ELSE 0 END)`,
-        eco: sql<number>`SUM(CASE WHEN ${pointsRecords.type} = 'eco' THEN ${pointsRecords.amount} ELSE 0 END)`,
-        trade: sql<number>`SUM(CASE WHEN ${pointsRecords.type} = 'trade' THEN ${pointsRecords.amount} ELSE 0 END)`,
+        date: sql<string>`DATE(created_at)`,
+        genesis: sql<number>`SUM(CASE WHEN type = 'genesis' THEN amount ELSE 0 END)`,
+        eco: sql<number>`SUM(CASE WHEN type = 'eco' THEN amount ELSE 0 END)`,
+        trade: sql<number>`SUM(CASE WHEN type = 'trade' THEN amount ELSE 0 END)`,
       }).from(pointsRecords)
-        .groupBy(sql`DATE(${pointsRecords.createdAt})`)
-        .orderBy(sql`DATE(${pointsRecords.createdAt}) DESC`)
+        .groupBy(sql`DATE(created_at)`)
+        .orderBy(sql`DATE(created_at) DESC`)
         .limit(30);
       
       return trends.reverse();
@@ -235,8 +235,9 @@ export const appRouter = router({
   // Settlements
   settlements: router({
     latest: protectedProcedure.query(async () => {
-      const db = await import("./db");
-      return db.getLatestSettlement();
+      const { getLatestSettlement } = await import("./db");
+      const result = await getLatestSettlement();
+      return result || null;
     }),
     
     list: protectedProcedure.query(async () => {

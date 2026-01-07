@@ -8,6 +8,9 @@ import { Calculator, CheckCircle, Clock, TrendingUp } from "lucide-react";
 export default function Settlements() {
   const { data: settlements, isLoading } = trpc.settlements.list.useQuery();
   const { data: latest } = trpc.settlements.latest.useQuery();
+  
+  // Handle null/undefined latest settlement
+  const hasLatest = latest && latest !== null;
 
   const confirmedCount = settlements?.filter(s => s.status === "confirmed").length || 0;
   const distributedCount = settlements?.filter(s => s.status === "distributed").length || 0;
@@ -65,7 +68,7 @@ export default function Settlements() {
       </div>
 
       {/* Latest Settlement */}
-      {latest && (
+      {hasLatest && latest && (
         <Card>
           <CardHeader>
             <CardTitle>当前周结算</CardTitle>

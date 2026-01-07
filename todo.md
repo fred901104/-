@@ -81,3 +81,7 @@
 - [x] 功能测试
 - [ ] 保存检查点
 - [ ] 部署上线
+
+## Bug修复
+- [x] 修复settlements.latest API返回undefined错误
+- [x] 修复SQL查询语法错误（GROUP BY列名问题）
