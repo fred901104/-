@@ -314,6 +314,47 @@ export const appRouter = router({
       return db.getUserPoints(input.userId);
     }),
   }),
+  
+  // Points Config
+  pointsConfig: router({
+    list: protectedProcedure.query(async () => {
+      const db = await import("./db");
+      return db.getAllPointsConfigs();
+    }),
+    
+    active: protectedProcedure.query(async () => {
+      const db = await import("./db");
+      return db.getActivePointsConfig();
+    }),
+    
+    create: protectedProcedure.input(z.object({
+      phase: z.string(),
+      phaseDescription: z.string(),
+      totalTokens: z.string(),
+      pointsPoolPercent: z.string(),
+      phaseReleasePercent: z.string(),
+      weekCount: z.number(),
+      dynamicPoolPercent: z.string(),
+      genesisPoolPercent: z.string(),
+      pGenesisPercent: z.string(),
+      pEcoPercent: z.string(),
+      pTradePercent: z.string(),
+      rulesConfig: z.string(),
+    })).mutation(async ({ input, ctx }) => {
+      const db = await import("./db");
+      return db.createPointsConfig({
+        ...input,
+        createdBy: ctx.user!.id,
+      });
+    }),
+    
+    setActive: protectedProcedure.input(z.object({
+      id: z.number(),
+    })).mutation(async ({ input }) => {
+      const db = await import("./db");
+      return db.setActiveConfig(input.id);
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

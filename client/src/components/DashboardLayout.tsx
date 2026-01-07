@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users, FileText, Radio, TrendingUp, Calculator } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users, FileText, Radio, TrendingUp, Calculator, Settings } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -29,6 +29,7 @@ import { Button } from "./ui/button";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "总览仪表盘", path: "/" },
+  { icon: Settings, label: "积分配置", path: "/points-config" },
   { icon: FileText, label: "P_Genesis 工单管理", path: "/tickets" },
   { icon: Radio, label: "P_Eco 直播监控", path: "/streams" },
   { icon: TrendingUp, label: "P_Trade 交易账本", path: "/trades" },
