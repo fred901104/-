@@ -277,9 +277,10 @@ export default function Tickets() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[60px]">序号</TableHead>
-                  <TableHead>UID</TableHead>
+                  <TableRow>
+                    <TableHead className="w-[60px]">序号</TableHead>
+                    <TableHead>创建时间</TableHead>
+                    <TableHead>UID</TableHead>
                   <TableHead>内容</TableHead>
                   <TableHead>工单号</TableHead>
                   <TableHead>提交人</TableHead>
@@ -292,7 +293,7 @@ export default function Tickets() {
               </TableHeader>
               <TableBody>
                 {paginatedTickets?.map((item, index) => {
-                  const globalIndex = (currentPage - 1) * pageSize + index + 1;
+                  const globalIndex = filteredTickets.length - ((currentPage - 1) * pageSize + index);
                   const ticket = item.ticket;
                   const user = item.user;
                   const TypeIcon = typeLabels[ticket.type as keyof typeof typeLabels]?.icon;
@@ -301,6 +302,17 @@ export default function Tickets() {
                   return (
                     <TableRow key={ticket.id}>
                       <TableCell className="text-center text-muted-foreground">{globalIndex}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(ticket.createdAt).toLocaleString('zh-CN', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false
+                        })}
+                      </TableCell>
                       <TableCell className="font-medium">#{ticket.id}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -328,11 +340,22 @@ export default function Tickets() {
                       <TableCell>{ticket.finalScore || 0}</TableCell>
                       <TableCell>{new Date(ticket.createdAt).toLocaleDateString("zh-CN")}</TableCell>
                       <TableCell>
-                        {ticket.status === "pending" && (
-                          <Button size="sm" onClick={() => openReviewDialog(item)}>
-                            审核
+                        <div className="flex gap-2">
+                          {ticket.status === "pending" && (
+                            <Button size="sm" onClick={() => openReviewDialog(item)}>
+                              审核
+                            </Button>
+                          )}
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              toast.info("冻结功能开发中");
+                            }}
+                          >
+                            冻结
                           </Button>
-                        )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

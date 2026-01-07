@@ -216,6 +216,7 @@ export default function Streams() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[60px]">序号</TableHead>
+                        <TableHead>开播时间</TableHead>
                         <TableHead>主播UID</TableHead>
                         <TableHead>主播名称</TableHead>
                         <TableHead>直播时长</TableHead>
@@ -230,10 +231,21 @@ export default function Streams() {
                     </TableHeader>
                     <TableBody>
                       {paginatedStreams?.map((stream, index) => {
-                        const globalIndex = (currentPage - 1) * pageSize + index + 1;
+                        const globalIndex = (streams?.length || 0) - ((currentPage - 1) * pageSize + index);
                         return (
                         <TableRow key={stream.stream.id}>
                           <TableCell className="text-center text-muted-foreground">{globalIndex}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(stream.stream.startTime).toLocaleString('zh-CN', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                              hour12: false
+                            })}
+                          </TableCell>
                           <TableCell className="font-mono">{stream.stream.streamerId}</TableCell>
                           <TableCell className="font-medium">{stream.streamer?.name || 'Unknown'}</TableCell>
                           <TableCell>
@@ -279,16 +291,27 @@ export default function Streams() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedStream(stream.stream.id);
-                                setCcuDialogOpen(true);
-                              }}
-                            >
-                              查看CCU
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedStream(stream.stream.id);
+                                  setCcuDialogOpen(true);
+                                }}
+                              >
+                                查看CCU
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  toast.info("冻结功能开发中");
+                                }}
+                              >
+                                冻结
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );

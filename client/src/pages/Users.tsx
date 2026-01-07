@@ -257,6 +257,7 @@ export default function Users() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[60px]">序号</TableHead>
                     <TableHead>ID</TableHead>
                     <TableHead>昵称</TableHead>
                     <TableHead>登录方式</TableHead>
@@ -273,8 +274,11 @@ export default function Users() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {users.map((user, index) => {
+                    const globalIndex = total - ((page - 1) * pageSize + index);
+                    return (
                     <TableRow key={user.id}>
+                      <TableCell className="text-center text-muted-foreground">{globalIndex}</TableCell>
                       <TableCell className="font-medium">#{user.id}</TableCell>
                       <TableCell>{user.nickname || user.name || "-"}</TableCell>
                       <TableCell>
@@ -316,7 +320,17 @@ export default function Users() {
                           <Badge variant="outline">正常</Badge>
                         )}
                       </TableCell>
-                      <TableCell>{new Date(user.createdAt).toLocaleDateString("zh-CN")}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(user.createdAt).toLocaleString('zh-CN', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false
+                        })}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button size="sm" variant="outline" onClick={() => openHistoryDialog(user)}>
@@ -337,7 +351,8 @@ export default function Users() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  );
+                  })}
                 </TableBody>
               </Table>
 

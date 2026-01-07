@@ -37,7 +37,7 @@ export default function Dashboard() {
 
   // 模拟环比数据
   const todayGrowth = calculateGrowth(overview?.todayPoints || 0, 850);
-  const activeUsersGrowth = calculateGrowth(overview?.activeUsers || 0, 95);
+  const activeUsersGrowth = calculateGrowth(overview?.participantUsers || 0, 95);
 
   // 准备饼图数据
   const pieData = overview?.totalPoints ? [
@@ -263,7 +263,7 @@ export default function Dashboard() {
             ) : (
               <>
                 <div className="text-2xl font-bold flex items-center gap-2">
-                  {overview?.activeUsers.toLocaleString()}
+                  {overview?.participantUsers?.toLocaleString() || 0}
                   <GrowthIndicator growth={activeUsersGrowth} />
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -285,7 +285,7 @@ export default function Dashboard() {
             ) : (
               <>
                 <div className="text-2xl font-bold">
-                  {(overview?.activeUsers || 0) * 12}
+                  {overview?.participantUsers?.toLocaleString() || 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   S0 阶段累计参与贡献人数

@@ -277,7 +277,7 @@ export default function Settlements() {
               </TableHeader>
               <TableBody>
                 {paginatedSettlements?.map((settlement, index) => {
-                  const globalIndex = (currentPage - 1) * pageSize + index + 1;
+                  const globalIndex = filteredSettlements.length - ((currentPage - 1) * pageSize + index);
                   const StatusIcon = statusLabels[settlement.status as keyof typeof statusLabels]?.icon;
 
                   return (
@@ -304,7 +304,17 @@ export default function Settlements() {
                           {statusLabels[settlement.status as keyof typeof statusLabels]?.label}
                         </div>
                       </TableCell>
-                      <TableCell>{new Date(settlement.createdAt).toLocaleDateString("zh-CN")}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(settlement.createdAt).toLocaleString('zh-CN', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false
+                        })}
+                      </TableCell>
                       <TableCell>
                         {settlement.status !== "distributed" && (
                           <Button

@@ -38,14 +38,20 @@ export const appRouter = router({
       }).from(pointsRecords)
         .where(gte(pointsRecords.createdAt, today));
       
-      const activeUsers = await dbInstance.select({
+      const totalUsers = await dbInstance.select({
         count: sql<number>`COUNT(DISTINCT ${users.id})`
       }).from(users);
+      
+      // 累计参与人数：在积分记录表中有记录的唯一用户数
+      const participantUsers = await dbInstance.select({
+        count: sql<number>`COUNT(DISTINCT ${pointsRecords.userId})`
+      }).from(pointsRecords);
       
       return {
         totalPoints,
         todayPoints: Number(todayPoints[0]?.total || 0),
-        activeUsers: Number(activeUsers[0]?.count || 0),
+        totalUsers: Number(totalUsers[0]?.count || 0),
+        participantUsers: Number(participantUsers[0]?.count || 0),
       };
     }),
     

@@ -228,6 +228,7 @@ export default function Trades() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[60px]">序号</TableHead>
+                    <TableHead>交易时间</TableHead>
                     <TableHead>用户UID</TableHead>
                     <TableHead>交易类型</TableHead>
                     <TableHead>交易对</TableHead>
@@ -242,13 +243,24 @@ export default function Trades() {
                 </TableHeader>
                 <TableBody>
                   {paginatedTrades?.map((trade, index) => {
-                    const globalIndex = (currentPage - 1) * pageSize + index + 1;
+                    const globalIndex = (trades?.length || 0) - ((currentPage - 1) * pageSize + index);
                     const isSuspicious = Math.random() > 0.8; // 模拟可疑检测
                     const isFrozen = Math.random() > 0.9; // 模拟冻结状态
                     
                     return (
                       <TableRow key={trade.trade.id}>
                         <TableCell className="text-center text-muted-foreground">{globalIndex}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(trade.trade.createdAt).toLocaleString('zh-CN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                          })}
+                        </TableCell>
                         <TableCell className="font-mono">{trade.trade.userId}</TableCell>
                         <TableCell>
                           <Badge variant={trade.trade.tradeType === "spot" ? "default" : "secondary"}>
