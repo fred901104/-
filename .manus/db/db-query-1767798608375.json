@@ -1,0 +1,42 @@
+{
+  "query": "SELECT 'users' as table_name, COUNT(*) as count FROM users\nUNION ALL SELECT 'live_streams', COUNT(*) FROM live_streams\nUNION ALL SELECT 'creator_contributions', COUNT(*) FROM creator_contributions\nUNION ALL SELECT 'audience_contributions', COUNT(*) FROM audience_contributions\nUNION ALL SELECT 'tickets', COUNT(*) FROM tickets\nUNION ALL SELECT 'trade_records', COUNT(*) FROM trade_records\nUNION ALL SELECT 'points_records', COUNT(*) FROM points_records\nUNION ALL SELECT 'settlements', COUNT(*) FROM settlements;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2KMpFtxdhMwESN4.root --database h7v6obutbNu2TWm3TCgiTk --execute SELECT 'users' as table_name, COUNT(*) as count FROM users\nUNION ALL SELECT 'live_streams', COUNT(*) FROM live_streams\nUNION ALL SELECT 'creator_contributions', COUNT(*) FROM creator_contributions\nUNION ALL SELECT 'audience_contributions', COUNT(*) FROM audience_contributions\nUNION ALL SELECT 'tickets', COUNT(*) FROM tickets\nUNION ALL SELECT 'trade_records', COUNT(*) FROM trade_records\nUNION ALL SELECT 'points_records', COUNT(*) FROM points_records\nUNION ALL SELECT 'settlements', COUNT(*) FROM settlements;",
+  "rows": [
+    {
+      "table_name": "tickets",
+      "count": "100"
+    },
+    {
+      "table_name": "live_streams",
+      "count": "1200"
+    },
+    {
+      "table_name": "creator_contributions",
+      "count": "800"
+    },
+    {
+      "table_name": "trade_records",
+      "count": "0"
+    },
+    {
+      "table_name": "settlements",
+      "count": "0"
+    },
+    {
+      "table_name": "points_records",
+      "count": "0"
+    },
+    {
+      "table_name": "audience_contributions",
+      "count": "7200"
+    },
+    {
+      "table_name": "users",
+      "count": "3041"
+    }
+  ],
+  "messages": [],
+  "stdout": "table_name\tcount\ntickets\t100\nlive_streams\t1200\ncreator_contributions\t800\ntrade_records\t0\nsettlements\t0\npoints_records\t0\naudience_contributions\t7200\nusers\t3041\n",
+  "stderr": "",
+  "execution_time_ms": 1506
+}
