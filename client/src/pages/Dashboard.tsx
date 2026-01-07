@@ -384,14 +384,14 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Core Metrics Trends */}
+      {/* Core Metrics Trends - Unified Chart */}
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>核心指标趋势</CardTitle>
+              <CardTitle>核心指标趋势（统一大图）</CardTitle>
               <CardDescription>
-                查看各维度核心指标的变化趋势
+                查看各维度核心指标的变化趋势，点击图例可显示/隐藏指定指标
               </CardDescription>
             </div>
             <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as any)}>
@@ -404,79 +404,136 @@ export default function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <MetricChart 
-              data={metricData} 
-              dataKey="participants" 
-              title="参与积分贡献人数"
-              color="#8b5cf6"
-            />
-            <MetricChart 
-              data={metricData} 
-              dataKey="streamHours" 
-              title="直播时长（小时）"
-              color="#3b82f6"
-            />
-            <MetricChart 
-              data={metricData} 
-              dataKey="tippers" 
-              title="打赏人数"
-              color="#10b981"
-            />
-            <MetricChart 
-              data={metricData} 
-              dataKey="tipAmount" 
-              title="打赏金额（U）"
-              color="#f59e0b"
-            />
-            <MetricChart 
-              data={metricData} 
-              dataKey="posters" 
-              title="发帖人数"
-              color="#ef4444"
-            />
-            <MetricChart 
-              data={metricData} 
-              dataKey="posts" 
-              title="发帖数"
-              color="#ec4899"
-            />
-            <MetricChart 
-              data={metricData} 
-              dataKey="featuredPosts" 
-              title="精品贴数"
-              color="#8b5cf6"
-            />
-            <MetricChart 
-              data={metricData} 
-              dataKey="spotVolume" 
-              title="现货交易量（U）"
-              color="#06b6d4"
-            />
-            <MetricChart 
-              data={metricData} 
-              dataKey="spotFees" 
-              title="现货手续费（U）"
-              color="#0ea5e9"
-            />
-            <MetricChart 
-              data={metricData} 
-              dataKey="futuresVolume" 
-              title="合约交易量（U）"
-              color="#6366f1"
-            />
-            <MetricChart 
-              data={metricData} 
-              dataKey="futuresFees" 
-              title="合约手续费（U）"
-              color="#8b5cf6"
-            />
-            <MetricChart 
-              data={metricData} 
-              dataKey="bugs" 
-              title="Bug提交数"
-              color="#f43f5e"
-            />
+          <ResponsiveContainer width="100%" height={500}>
+            <LineChart data={metricData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="label" 
+                tick={{ fontSize: 12 }}
+                stroke="#888"
+              />
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                stroke="#888"
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: "white",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "6px",
+                  fontSize: "12px"
+                }}
+              />
+              <Legend 
+                wrapperStyle={{ fontSize: "12px" }}
+                iconType="line"
+              />
+              
+              {/* 12个核心指标 */}
+              <Line 
+                type="monotone" 
+                dataKey="participants" 
+                stroke="#8b5cf6" 
+                name="参与人数"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="streamHours" 
+                stroke="#3b82f6" 
+                name="直播时长(h)"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="tippers" 
+                stroke="#10b981" 
+                name="打赏人数"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="tipAmount" 
+                stroke="#f59e0b" 
+                name="打赏金额(U)"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="posters" 
+                stroke="#ef4444" 
+                name="发帖人数"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="posts" 
+                stroke="#ec4899" 
+                name="发帖数"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="featuredPosts" 
+                stroke="#a855f7" 
+                name="精品贴数"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="spotVolume" 
+                stroke="#06b6d4" 
+                name="现货交易量(U)"
+                strokeWidth={2}
+                dot={false}
+                hide
+              />
+              <Line 
+                type="monotone" 
+                dataKey="spotFees" 
+                stroke="#0ea5e9" 
+                name="现货手续费(U)"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="futuresVolume" 
+                stroke="#6366f1" 
+                name="合约交易量(U)"
+                strokeWidth={2}
+                dot={false}
+                hide
+              />
+              <Line 
+                type="monotone" 
+                dataKey="futuresFees" 
+                stroke="#8b5cf6" 
+                name="合约手续费(U)"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="bugs" 
+                stroke="#f43f5e" 
+                name="Bug提交数"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+          
+          <div className="mt-4 text-sm text-muted-foreground">
+            <p>• 图表展示12个核心指标的趋势变化，默认隐藏交易量指标以保持图表清晰</p>
+            <p>• 点击图例中的指标名称可以显示/隐藏对应的折线</p>
           </div>
         </CardContent>
       </Card>

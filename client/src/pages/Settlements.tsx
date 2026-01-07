@@ -1,16 +1,22 @@
 import { trpc } from "@/lib/trpc";
+import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calculator, CheckCircle, Clock, TrendingUp, Download } from "lucide-react";
+import { Calculator, CheckCircle, Clock, TrendingUp, Download, Send } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { exportToExcel, formatSettlementForExport } from "@/lib/export";
 import { toast } from "sonner";
 
 export default function Settlements() {
-  const { data: settlements, isLoading } = trpc.settlements.list.useQuery();
+  const [distributeDialogOpen, setDistributeDialogOpen] = React.useState(false);
+  const [selectedSettlement, setSelectedSettlement] = React.useState<any>(null);
+  
+  const { data: settlements, isLoading, refetch } = trpc.settlements.list.useQuery();
   const { data: latest } = trpc.settlements.latest.useQuery();
+  const distributeMutation = trpc.settlements.distribute.useMutation();
   
   // Handle null/undefined latest settlement
   const hasLatest = latest && latest !== null;
@@ -148,8 +154,11 @@ export default function Settlements() {
                   <TableHead>P_Genesis</TableHead>
                   <TableHead>P_Eco</TableHead>
                   <TableHead>P_Trade</TableHead>
+                  <TableHead>预发放积分</TableHead>
+                  <TableHead>实际发放</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>创建时间</TableHead>
+                  <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -167,6 +176,12 @@ export default function Settlements() {
                       <TableCell className="text-purple-600">{settlement.genesisPoints?.toLocaleString()}</TableCell>
                       <TableCell className="text-blue-600">{settlement.ecoPoints?.toLocaleString()}</TableCell>
                       <TableCell className="text-green-600">{settlement.tradePoints?.toLocaleString()}</TableCell>
+                      <TableCell className="text-orange-600 font-medium">
+                        {settlement.preDistributionPoints?.toLocaleString() || settlement.totalPoints?.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-green-600 font-bold">
+                        {(settlement.actualDistributionPoints || 0) > 0 ? (settlement.actualDistributionPoints || 0).toLocaleString() : "-"}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {StatusIcon && <StatusIcon className={`h-4 w-4 ${statusLabels[settlement.status as keyof typeof statusLabels]?.color}`} />}
@@ -174,6 +189,25 @@ export default function Settlements() {
                         </div>
                       </TableCell>
                       <TableCell>{new Date(settlement.createdAt).toLocaleDateString("zh-CN")}</TableCell>
+                      <TableCell>
+                        {settlement.status !== "distributed" && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedSettlement(settlement);
+                              setDistributeDialogOpen(true);
+                            }}
+                          >
+                            <Send className="h-3 w-3 mr-1" />
+                            发放
+                          </Button>
+                        )}
+                        {settlement.status === "distributed" && settlement.distributedAt && (
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(settlement.distributedAt).toLocaleDateString("zh-CN")}
+                          </span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -211,6 +245,74 @@ export default function Settlements() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Distribute Confirmation Dialog */}
+      <Dialog open={distributeDialogOpen} onOpenChange={setDistributeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认发放积分</DialogTitle>
+            <DialogDescription>
+              请确认是否将该周的积分发放给用户？此操作不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          {selectedSettlement && (
+            <div className="space-y-3 py-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">周次：</span>
+                <span className="font-medium">第{selectedSettlement.weekNumber}周 ({selectedSettlement.year})</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">日期范围：</span>
+                <span className="font-medium">
+                  {new Date(selectedSettlement.startDate).toLocaleDateString("zh-CN")} - {new Date(selectedSettlement.endDate).toLocaleDateString("zh-CN")}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">总积分：</span>
+                <span className="font-bold text-lg">{selectedSettlement.totalPoints?.toLocaleString()}</span>
+              </div>
+              <div className="border-t pt-3 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-purple-600">P_Genesis：</span>
+                  <span className="font-medium">{selectedSettlement.genesisPoints?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-blue-600">P_Eco：</span>
+                  <span className="font-medium">{selectedSettlement.ecoPoints?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-green-600">P_Trade：</span>
+                  <span className="font-medium">{selectedSettlement.tradePoints?.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDistributeDialogOpen(false)}>
+              取消
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (!selectedSettlement) return;
+                try {
+                  await distributeMutation.mutateAsync({ 
+                    id: selectedSettlement.id,
+                    actualPoints: selectedSettlement.totalPoints,
+                  });
+                  toast.success("积分发放成功！");
+                  setDistributeDialogOpen(false);
+                  refetch();
+                } catch (error: any) {
+                  toast.error(error.message || "发放失败，请重试");
+                }
+              }}
+              disabled={distributeMutation.isPending}
+            >
+              {distributeMutation.isPending ? "发放中..." : "确认发放"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

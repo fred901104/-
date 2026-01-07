@@ -268,6 +268,42 @@ export const appRouter = router({
       
       return db.select().from(settlements).orderBy(desc(settlements.createdAt));
     }),
+    
+    distribute: protectedProcedure
+      .input(z.object({ 
+        id: z.number(),
+        actualPoints: z.number().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const { settlements } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        // 获取结算记录
+        const settlement = await db.select().from(settlements).where(eq(settlements.id, input.id)).limit(1);
+        if (!settlement || settlement.length === 0) {
+          throw new Error("结算记录不存在");
+        }
+        
+        if (settlement[0].status === "distributed") {
+          throw new Error("该结算已经发放，不能重复操作");
+        }
+        
+        // 更新结算状态为已发放
+        const actualDistributionPoints = input.actualPoints || settlement[0].totalPoints || 0;
+        await db.update(settlements)
+          .set({ 
+            status: "distributed",
+            actualDistributionPoints,
+            distributedAt: new Date(),
+          })
+          .where(eq(settlements.id, input.id));
+        
+        return { success: true };
+      }),
   }),
   
   // Core Identities

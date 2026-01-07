@@ -98,7 +98,7 @@ async function generateMockData() {
   
   for (let i = 0; i < ticketCount; i++) {
     const userId = randomChoice(userIds);
-    const type = randomChoice(["bug", "suggestion", "critical_info"]);
+    const type = randomChoice(["bug", "suggestion", "info"]);
     const priority = randomChoice(["p0", "p1", "p2", "p3"]);
     const status = randomChoice(["pending", "approved", "rejected"]);
     
@@ -142,10 +142,14 @@ async function generateMockData() {
     streams.push({
       streamerId: userId,
       title: `直播 #${i + 1}`,
-      durationMinutes,
-      avgCCU,
-      peakCCU,
-      chatMessages,
+      duration: durationMinutes,
+      avgCcu: avgCCU,
+      peakCcu: peakCCU,
+      interactionCount: chatMessages,
+      viewerCount: avgCCU,
+      status: "completed",
+      startedAt: new Date(startDate.getTime() + randomInt(0, daysDiff) * 24 * 60 * 60 * 1000),
+      endedAt: new Date(startDate.getTime() + randomInt(0, daysDiff) * 24 * 60 * 60 * 1000 + durationMinutes * 60 * 1000),
       createdAt: new Date(startDate.getTime() + randomInt(0, daysDiff) * 24 * 60 * 60 * 1000),
     });
   }
@@ -219,10 +223,10 @@ async function generateMockData() {
     trades.push({
       userId,
       tradeType,
-      tradingPair: randomChoice(["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT"]),
+      tradePair: randomChoice(["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT"]),
       volume: parseFloat(volume.toFixed(2)),
-      fee: parseFloat(fee.toFixed(2)),
-      holdingMinutes: holdMinutes,
+      feeAmount: parseFloat(fee.toFixed(2)),
+      holdingDuration: Math.floor(holdMinutes / 60), // 转换为小时
       orderCount: randomInt(1, 10),
       status: isSuspicious ? "suspicious" : "normal",
       createdAt: new Date(startDate.getTime() + randomInt(0, daysDiff) * 24 * 60 * 60 * 1000),
@@ -250,9 +254,11 @@ async function generateMockData() {
     pointsRecords.push({
       userId: ticket.userId,
       type: "genesis",
-      amount: ticket.points,
-      source: "ticket",
-      sourceId: ticket.userId, // 实际应该是ticket.id
+      subType: "ticket",
+      amount: ticket.finalScore,
+      description: `工单奖励: ${ticket.title}`,
+      relatedId: ticket.userId,
+      status: "approved",
       createdAt: ticket.createdAt,
     });
   }
@@ -262,9 +268,11 @@ async function generateMockData() {
     pointsRecords.push({
       userId: contrib.userId,
       type: "eco",
-      amount: parseFloat((contrib.score * 0.5).toFixed(2)),
-      source: "audience",
-      sourceId: contrib.userId,
+      subType: "audience",
+      amount: Math.floor(contrib.totalScore),
+      description: `观众贡献奖励`,
+      relatedId: contrib.userId,
+      status: "approved",
       createdAt: contrib.date,
     });
   }
@@ -272,13 +280,15 @@ async function generateMockData() {
   // Trade积分
   const settledTrades = trades.filter(t => t.status === "normal");
   for (const trade of settledTrades.slice(0, 10000)) {
-    const points = trade.fee * 5 + (trade.holdMinutes > 60 ? 10 : 0);
+    const points = trade.feeAmount * 10 + (trade.holdingDuration > 1 ? trade.holdingDuration * 0.1 : 0);
     pointsRecords.push({
       userId: trade.userId,
       type: "trade",
-      amount: parseFloat(points.toFixed(2)),
-      source: "trade",
-      sourceId: trade.userId,
+      subType: "trading",
+      amount: Math.floor(points * 100) / 100, // 保留两位小数
+      description: `交易奖励: ${trade.tradePair}`,
+      relatedId: trade.userId,
+      status: "approved",
       createdAt: trade.createdAt,
     });
   }

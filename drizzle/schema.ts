@@ -125,10 +125,13 @@ export const settlements = mysqlTable("settlements", {
   genesisPoints: int("genesis_points").default(0),
   ecoPoints: int("eco_points").default(0),
   tradePoints: int("trade_points").default(0),
+  preDistributionPoints: int("pre_distribution_points").default(0), // 预发放积分
+  actualDistributionPoints: int("actual_distribution_points").default(0), // 实际发放积分
   status: mysqlEnum("status", ["preview", "confirmed", "distributed"]).default("preview").notNull(),
   createdBy: int("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   confirmedAt: timestamp("confirmed_at"),
+  distributedAt: timestamp("distributed_at"), // 发放时间
 });
 
 export type Settlement = typeof settlements.$inferSelect;
