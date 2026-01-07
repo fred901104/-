@@ -11,7 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertCircle, CheckCircle, Clock, XCircle, FileText, Download } from "lucide-react";
 import { exportToExcel, formatTicketForExport } from "@/lib/export";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
 
 const priorityLabels = {
@@ -49,6 +50,10 @@ export default function Tickets() {
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  
   // 筛选逻辑
   const filteredTickets = tickets?.filter(item => {
     const ticket = item.ticket;
@@ -65,6 +70,20 @@ export default function Tickets() {
     }
     return true;
   }) || [];
+  
+  // 分页逻辑
+  const paginatedTickets = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredTickets.slice(startIndex, endIndex);
+  }, [filteredTickets, currentPage, pageSize]);
+  
+  const totalPages = Math.ceil(filteredTickets.length / pageSize);
+  
+  // 当筛选条件改变时重置到第一页
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, filterStatus, filterPriority, searchQuery]);
 
   const handleReview = async (status: "approved" | "rejected") => {
     if (!selectedTicket) return;
@@ -259,6 +278,7 @@ export default function Tickets() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[60px]">序号</TableHead>
                   <TableHead>UID</TableHead>
                   <TableHead>内容</TableHead>
                   <TableHead>工单号</TableHead>
@@ -271,7 +291,8 @@ export default function Tickets() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTickets?.map((item) => {
+                {paginatedTickets?.map((item, index) => {
+                  const globalIndex = (currentPage - 1) * pageSize + index + 1;
                   const ticket = item.ticket;
                   const user = item.user;
                   const TypeIcon = typeLabels[ticket.type as keyof typeof typeLabels]?.icon;
@@ -279,6 +300,7 @@ export default function Tickets() {
 
                   return (
                     <TableRow key={ticket.id}>
+                      <TableCell className="text-center text-muted-foreground">{globalIndex}</TableCell>
                       <TableCell className="font-medium">#{ticket.id}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -317,6 +339,19 @@ export default function Tickets() {
                 })}
               </TableBody>
             </Table>
+          )}
+          {filteredTickets.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={filteredTickets.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+            />
           )}
         </CardContent>
       </Card>
