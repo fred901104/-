@@ -11,7 +11,7 @@ import { FilterBar, FilterConfig, FilterValues } from "@/components/FilterBar";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead, SortDirection } from "@/components/SortableTableHead";
 import { Radio, Users, Clock, MessageSquare, DollarSign, Star, TrendingUp, Activity, Download } from "lucide-react";
-import { exportToExcel, formatStreamForExport } from "@/lib/export";
+import { exportToExcel, formatDateTime } from "@/lib/exportToExcel";
 import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 
@@ -45,6 +45,43 @@ export default function Streams() {
   };
 
   const { data: streams, isLoading } = trpc.streams.list.useQuery();
+
+  // 导出主播贡献功能
+  const handleExportStreams = () => {
+    const exportData = sortedStreams.map((item, index) => ({
+      '序号': sortedStreams.length - index,
+      '开播时间': formatDateTime(item.stream.startTime),
+      '主播名称': item.streamer?.name || '-',
+      'UID': item.streamer?.openId || '-',
+      '直播时长(分钟)': item.stream.duration ? Math.floor(item.stream.duration / 60) : 0,
+      '平均CCU': item.stream.avgCcu || 0,
+      'P_Eco得分': 0, // TODO: 添加pEcoScore字段到stream表
+      '状态': item.stream.endTime ? '已结束' : '直播中',
+    }));
+    exportToExcel(exportData, '直播监控-主播贡献', '主播列表');
+    toast.success(`已导出 ${exportData.length} 条主播数据`);
+  };
+
+  // 导出观众贡献功能
+  const handleExportAudience = () => {
+    // 模拟观众数据（实际应从 API 获取）
+    const mockAudience = [
+      { id: 1, viewerName: '观众A', viewerId: 'V001', watchMinutes: 120, gifts: 500, pEcoScore: 50, createdAt: new Date() },
+      { id: 2, viewerName: '观众B', viewerId: 'V002', watchMinutes: 90, gifts: 300, pEcoScore: 35, createdAt: new Date() },
+      { id: 3, viewerName: '观众C', viewerId: 'V003', watchMinutes: 60, gifts: 200, pEcoScore: 25, createdAt: new Date() },
+    ];
+    const exportData = mockAudience.map((viewer, index) => ({
+      '序号': mockAudience.length - index,
+      '创建时间': formatDateTime(viewer.createdAt),
+      '观众名称': viewer.viewerName,
+      'UID': viewer.viewerId,
+      '观看时长(分钟)': viewer.watchMinutes,
+      '打赏金额': viewer.gifts,
+      'P_Eco得分': viewer.pEcoScore,
+    }));
+    exportToExcel(exportData, '直播监控-观众贡献', '观众列表');
+    toast.success(`已导出 ${exportData.length} 条观众数据`);
+  };
 
   const filterConfig: FilterConfig = {
     searchPlaceholder: "搜索主播名称、UID...",
@@ -219,13 +256,7 @@ export default function Streams() {
         </div>
         <Button
           onClick={() => {
-            if (!streams || streams.length === 0) {
-              toast.error("没有可导出的数据");
-              return;
-            }
-            const exportData = streams.map(formatStreamForExport);
-            exportToExcel(exportData, `直播记录_${new Date().toLocaleDateString("zh-CN")}`, "直播数据");
-            toast.success("导出成功！");
+            handleExportStreams();
           }}
           className="gap-2"
         >
@@ -450,10 +481,22 @@ export default function Streams() {
         <TabsContent value="audience" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>观众贡献数据统计</CardTitle>
-              <CardDescription>
-                Score_Audience = (打赏金额手续费 × 5) + (有效观看时长 × 1) + (有效聊天条数 × 0.2) + (精选内容贴数量 × 5)
-              </CardDescription>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>观众贡献数据统计</CardTitle>
+                  <CardDescription>
+                    Score_Audience = (打赏金额手续费 × 5) + (有效观看时长 × 1) + (有效聊天条数 × 0.2) + (精选内容贴数量 × 5)
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={handleExportAudience}
+                  className="gap-2"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4" />
+                  导出观众数据
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="border rounded-lg">

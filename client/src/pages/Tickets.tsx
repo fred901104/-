@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertCircle, CheckCircle, Clock, XCircle, FileText, Download } from "lucide-react";
-import { exportToExcel, formatTicketForExport } from "@/lib/export";
+import { exportToExcel, formatDateTime } from "@/lib/exportToExcel";
 import { useState, useMemo, useEffect } from "react";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead, SortDirection } from "@/components/SortableTableHead";
@@ -71,6 +71,24 @@ export default function Tickets() {
     }
   };
   const [searchQuery, setSearchQuery] = useState("");
+
+  // 导出功能
+  const handleExport = () => {
+    const exportData = sortedTickets.map((item, index) => ({
+      '序号': sortedTickets.length - index,
+      '创建时间': formatDateTime(item.ticket.createdAt),
+      '工单号': `T${item.ticket.id.toString().padStart(6, '0')}`,
+      'UID': item.user?.openId || '-',
+      '提交人': item.user?.name || '-',
+      '工单类型': typeLabels[item.ticket.type as keyof typeof typeLabels].label,
+      'BUG等级': item.ticket.priority ? priorityLabels[item.ticket.priority as keyof typeof priorityLabels].label : '-',
+      '释放积分': item.ticket.finalScore || 0,
+      '状态': statusLabels[item.ticket.status as keyof typeof statusLabels].label,
+      '工单内容': item.ticket.content,
+    }));
+    exportToExcel(exportData, '工单管理', '工单列表');
+    toast.success(`已导出 ${exportData.length} 条工单数据`);
+  };
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: "", end: "" });
   
   // 分页状态
@@ -191,13 +209,7 @@ export default function Tickets() {
         </div>
         <Button
           onClick={() => {
-            if (!tickets || tickets.length === 0) {
-              toast.error("没有可导出的数据");
-              return;
-            }
-            const exportData = tickets.map(formatTicketForExport);
-            exportToExcel(exportData, `工单列表_${new Date().toLocaleDateString("zh-CN")}`, "工单记录");
-            toast.success("导出成功！");
+            handleExport();
           }}
           className="gap-2"
         >

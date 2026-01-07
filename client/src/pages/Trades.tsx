@@ -10,7 +10,7 @@ import { FilterBar, FilterConfig, FilterValues } from "@/components/FilterBar";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead, SortDirection } from "@/components/SortableTableHead";
 import { AlertCircle, CheckCircle, Lock, Unlock, TrendingUp, DollarSign, Clock, AlertTriangle, Download } from "lucide-react";
-import { exportToExcel, formatTradeForExport } from "@/lib/export";
+import { exportToExcel, formatDateTime } from "@/lib/exportToExcel";
 import { toast } from "sonner";
 
 export default function Trades() {
@@ -18,6 +18,23 @@ export default function Trades() {
   const [freezeDialogOpen, setFreezeDialogOpen] = useState(false);
   const [frozenDetailsOpen, setFrozenDetailsOpen] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<any>(null);
+
+  // 导出功能
+  const handleExport = () => {
+    const exportData = sortedTrades.map((item, index) => ({
+      '序号': sortedTrades.length - index,
+      '交易时间': formatDateTime(item.trade.createdAt),
+      '交易者UID': item.user?.openId || '-',
+      '交易者名称': item.user?.name || '-',
+      '交易类型': item.trade.tradeType === 'spot' ? '现货' : '合约',
+      '交易量(USDT)': item.trade.volume,
+      '手续费(USDT)': item.trade.feeAmount,
+      'P_Trade得分': item.trade.estimatedPoints || 0,
+      '状态': item.trade.status === 'frozen' ? '已冻结' : '正常',
+    }));
+    exportToExcel(exportData, '交易账本', '交易列表');
+    toast.success(`已导出 ${exportData.length} 条交易数据`);
+  };
   
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
@@ -182,13 +199,7 @@ export default function Trades() {
         </div>
         <Button
           onClick={() => {
-            if (!trades || trades.length === 0) {
-              toast.error("没有可导出的数据");
-              return;
-            }
-            const exportData = trades.map(formatTradeForExport);
-            exportToExcel(exportData, `交易记录_${new Date().toLocaleDateString("zh-CN")}`, "交易数据");
-            toast.success("导出成功！");
+            handleExport();
           }}
           className="gap-2"
         >
