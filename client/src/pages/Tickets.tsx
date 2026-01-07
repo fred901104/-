@@ -42,6 +42,29 @@ export default function Tickets() {
   const [priority, setPriority] = useState<"p0" | "p1" | "p2" | "p3">("p1");
   const [finalScore, setFinalScore] = useState(100);
   const [reviewNote, setReviewNote] = useState("");
+  
+  // 筛选状态
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // 筛选逻辑
+  const filteredTickets = tickets?.filter(item => {
+    const ticket = item.ticket;
+    if (filterType !== "all" && ticket.type !== filterType) return false;
+    if (filterStatus !== "all" && ticket.status !== filterStatus) return false;
+    if (filterPriority !== "all" && ticket.priority !== filterPriority) return false;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        ticket.title?.toLowerCase().includes(query) ||
+        ticket.id?.toString().includes(query) ||
+        ticket.userId?.toString().includes(query)
+      );
+    }
+    return true;
+  }) || [];
 
   const handleReview = async (status: "approved" | "rejected") => {
     if (!selectedTicket) return;

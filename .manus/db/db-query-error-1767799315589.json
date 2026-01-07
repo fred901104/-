@@ -1,0 +1,8 @@
+{
+  "query": "SELECT \n  'points_records_total' as metric, \n  SUM(amount) as value \nFROM points_records \nWHERE status = 'approved'\nUNION ALL\nSELECT 'settlements_total', SUM(actualDistributionPoints) FROM settlements WHERE status = 'distributed'\nUNION ALL\nSELECT 'points_by_type_genesis', SUM(amount) FROM points_records WHERE type = 'genesis' AND status = 'approved'\nUNION ALL\nSELECT 'points_by_type_eco', SUM(amount) FROM points_records WHERE type = 'eco' AND status = 'approved'\nUNION ALL\nSELECT 'points_by_type_trade', SUM(amount) FROM points_records WHERE type = 'trade' AND status = 'approved';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2KMpFtxdhMwESN4.root --database h7v6obutbNu2TWm3TCgiTk --execute SELECT \n  'points_records_total' as metric, \n  SUM(amount) as value \nFROM points_records \nWHERE status = 'approved'\nUNION ALL\nSELECT 'settlements_total', SUM(actualDistributionPoints) FROM settlements WHERE status = 'distributed'\nUNION ALL\nSELECT 'points_by_type_genesis', SUM(amount) FROM points_records WHERE type = 'genesis' AND status = 'approved'\nUNION ALL\nSELECT 'points_by_type_eco', SUM(amount) FROM points_records WHERE type = 'eco' AND status = 'approved'\nUNION ALL\nSELECT 'points_by_type_trade', SUM(amount) FROM points_records WHERE type = 'trade' AND status = 'approved';",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'actualdistributionpoints' in 'where clause'"
+  ]
+}

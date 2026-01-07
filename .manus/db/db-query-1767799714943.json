@@ -1,0 +1,46 @@
+{
+  "query": "SELECT \n  'users' as table_name, COUNT(*) as count FROM users\nUNION ALL SELECT 'live_streams', COUNT(*) FROM live_streams\nUNION ALL SELECT 'tickets', COUNT(*) FROM tickets\nUNION ALL SELECT 'trade_records', COUNT(*) FROM trade_records\nUNION ALL SELECT 'points_records', COUNT(*) FROM points_records\nUNION ALL SELECT 'settlements', COUNT(*) FROM settlements\nUNION ALL SELECT 'points_genesis', SUM(amount) FROM points_records WHERE type = 'genesis' AND status = 'approved'\nUNION ALL SELECT 'points_eco', SUM(amount) FROM points_records WHERE type = 'eco' AND status = 'approved'\nUNION ALL SELECT 'points_trade', SUM(amount) FROM points_records WHERE type = 'trade' AND status = 'approved';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2KMpFtxdhMwESN4.root --database h7v6obutbNu2TWm3TCgiTk --execute SELECT \n  'users' as table_name, COUNT(*) as count FROM users\nUNION ALL SELECT 'live_streams', COUNT(*) FROM live_streams\nUNION ALL SELECT 'tickets', COUNT(*) FROM tickets\nUNION ALL SELECT 'trade_records', COUNT(*) FROM trade_records\nUNION ALL SELECT 'points_records', COUNT(*) FROM points_records\nUNION ALL SELECT 'settlements', COUNT(*) FROM settlements\nUNION ALL SELECT 'points_genesis', SUM(amount) FROM points_records WHERE type = 'genesis' AND status = 'approved'\nUNION ALL SELECT 'points_eco', SUM(amount) FROM points_records WHERE type = 'eco' AND status = 'approved'\nUNION ALL SELECT 'points_trade', SUM(amount) FROM points_records WHERE type = 'trade' AND status = 'approved';",
+  "rows": [
+    {
+      "table_name": "tickets",
+      "count": "150"
+    },
+    {
+      "table_name": "trade_records",
+      "count": "0"
+    },
+    {
+      "table_name": "live_streams",
+      "count": "1600"
+    },
+    {
+      "table_name": "settlements",
+      "count": "0"
+    },
+    {
+      "table_name": "points_records",
+      "count": "0"
+    },
+    {
+      "table_name": "points_genesis",
+      "count": "NULL"
+    },
+    {
+      "table_name": "points_eco",
+      "count": "NULL"
+    },
+    {
+      "table_name": "points_trade",
+      "count": "NULL"
+    },
+    {
+      "table_name": "users",
+      "count": "4041"
+    }
+  ],
+  "messages": [],
+  "stdout": "table_name\tcount\ntickets\t150\ntrade_records\t0\nlive_streams\t1600\nsettlements\t0\npoints_records\t0\npoints_genesis\tNULL\npoints_eco\tNULL\npoints_trade\tNULL\nusers\t4041\n",
+  "stderr": "",
+  "execution_time_ms": 1542
+}

@@ -1,0 +1,38 @@
+{
+  "query": "SELECT \n  'points_records_total' as metric, \n  SUM(amount) as value \nFROM points_records \nWHERE status = 'approved'\nUNION ALL\nSELECT 'settlements_total', SUM(actual_distribution_points) FROM settlements WHERE status = 'distributed'\nUNION ALL\nSELECT 'points_by_type_genesis', SUM(amount) FROM points_records WHERE type = 'genesis' AND status = 'approved'\nUNION ALL\nSELECT 'points_by_type_eco', SUM(amount) FROM points_records WHERE type = 'eco' AND status = 'approved'\nUNION ALL\nSELECT 'points_by_type_trade', SUM(amount) FROM points_records WHERE type = 'trade' AND status = 'approved'\nUNION ALL\nSELECT 'settlements_count', COUNT(*) FROM settlements\nUNION ALL\nSELECT 'points_records_count', COUNT(*) FROM points_records;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2KMpFtxdhMwESN4.root --database h7v6obutbNu2TWm3TCgiTk --execute SELECT \n  'points_records_total' as metric, \n  SUM(amount) as value \nFROM points_records \nWHERE status = 'approved'\nUNION ALL\nSELECT 'settlements_total', SUM(actual_distribution_points) FROM settlements WHERE status = 'distributed'\nUNION ALL\nSELECT 'points_by_type_genesis', SUM(amount) FROM points_records WHERE type = 'genesis' AND status = 'approved'\nUNION ALL\nSELECT 'points_by_type_eco', SUM(amount) FROM points_records WHERE type = 'eco' AND status = 'approved'\nUNION ALL\nSELECT 'points_by_type_trade', SUM(amount) FROM points_records WHERE type = 'trade' AND status = 'approved'\nUNION ALL\nSELECT 'settlements_count', COUNT(*) FROM settlements\nUNION ALL\nSELECT 'points_records_count', COUNT(*) FROM points_records;",
+  "rows": [
+    {
+      "metric": "settlements_total",
+      "value": "200000"
+    },
+    {
+      "metric": "settlements_count",
+      "value": "3"
+    },
+    {
+      "metric": "points_by_type_genesis",
+      "value": "120000"
+    },
+    {
+      "metric": "points_by_type_trade",
+      "value": "NULL"
+    },
+    {
+      "metric": "points_records_total",
+      "value": "240068"
+    },
+    {
+      "metric": "points_records_count",
+      "value": "8100"
+    },
+    {
+      "metric": "points_by_type_eco",
+      "value": "120068"
+    }
+  ],
+  "messages": [],
+  "stdout": "metric\tvalue\nsettlements_total\t200000\nsettlements_count\t3\npoints_by_type_genesis\t120000\npoints_by_type_trade\tNULL\npoints_records_total\t240068\npoints_records_count\t8100\npoints_by_type_eco\t120068\n",
+  "stderr": "",
+  "execution_time_ms": 1598
+}
