@@ -42,7 +42,7 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">总积分池</CardTitle>
+            <CardTitle className="text-sm font-medium">已结算积分</CardTitle>
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -54,7 +54,7 @@ export default function Dashboard() {
                   {overview?.totalPoints.total.toLocaleString()}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  已发放积分总量
+                  已经结算到用户端的总积分
                 </p>
               </>
             )}
@@ -63,7 +63,7 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">今日新增</CardTitle>
+            <CardTitle className="text-sm font-medium">今日新增积分</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -84,7 +84,7 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">活跃用户</CardTitle>
+            <CardTitle className="text-sm font-medium">今日活跃用户</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -96,7 +96,7 @@ export default function Dashboard() {
                   {overview?.activeUsers.toLocaleString()}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  参与用户总数
+                  参与贡献获得积分的人数
                 </p>
               </>
             )}
@@ -122,9 +122,9 @@ export default function Dashboard() {
         {/* Pie Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>分池产出占比</CardTitle>
+            <CardTitle>各个池积分占比</CardTitle>
             <CardDescription>
-              P_Genesis / P_Eco / P_Trade 实时分布
+              P_Genesis / P_Eco / P_Trade 周期内，各个分池已经产出积分/对应池可释放积分的占比
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -160,7 +160,7 @@ export default function Dashboard() {
         {/* Line Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>每日积分发放趋势</CardTitle>
+            <CardTitle>每日积分发放趋势（折线图）</CardTitle>
             <CardDescription>
               近30天各维度积分发放情况
             </CardDescription>
