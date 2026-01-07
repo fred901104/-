@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, user_id, title, type, status, priority FROM tickets ORDER BY created_at DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2KMpFtxdhMwESN4.root --database h7v6obutbNu2TWm3TCgiTk --execute SELECT id, user_id, title, type, status, priority FROM tickets ORDER BY created_at DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "60029",
+      "user_id": "226352",
+      "title": "工单标题 29",
+      "type": "bug",
+      "status": "approved",
+      "priority": "p1"
+    },
+    {
+      "id": "60283",
+      "user_id": "227235",
+      "title": "工单标题 133",
+      "type": "bug",
+      "status": "rejected",
+      "priority": "p1"
+    },
+    {
+      "id": "60150",
+      "user_id": "225692",
+      "title": "工单标题 150",
+      "type": "suggestion",
+      "status": "approved",
+      "priority": "p3"
+    },
+    {
+      "id": "60316",
+      "user_id": "227649",
+      "title": "工单标题 16",
+      "type": "bug",
+      "status": "pending",
+      "priority": "p2"
+    },
+    {
+      "id": "60088",
+      "user_id": "225786",
+      "title": "工单标题 88",
+      "type": "suggestion",
+      "status": "rejected",
+      "priority": "p2"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuser_id\ttitle\ttype\tstatus\tpriority\n60029\t226352\t工单标题 29\tbug\tapproved\tp1\n60283\t227235\t工单标题 133\tbug\trejected\tp1\n60150\t225692\t工单标题 150\tsuggestion\tapproved\tp3\n60316\t227649\t工单标题 16\tbug\tpending\tp2\n60088\t225786\t工单标题 88\tsuggestion\trejected\tp2\n",
+  "stderr": "",
+  "execution_time_ms": 1577
+}
