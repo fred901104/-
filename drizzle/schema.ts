@@ -200,19 +200,11 @@ export type InsertFeaturedContent = typeof featuredContents.$inferInsert;
 export const pointsConfigs = mysqlTable("points_configs", {
   id: int("id").autoincrement().primaryKey(),
   phase: varchar("phase", { length: 32 }).notNull(), // S0, S1, S2
-  phaseDescription: text("phase_description"),
-  totalTokens: varchar("total_tokens", { length: 64 }).notNull(), // 代币总量 (10B)
-  pointsPoolPercent: varchar("points_pool_percent", { length: 16 }).notNull(), // 积分池占比 (10%)
-  phaseReleasePercent: varchar("phase_release_percent", { length: 16 }).notNull(), // 该阶段释放占比 (2%)
-  weekCount: int("week_count").notNull(), // 周期数 (12周)
-  dynamicPoolPercent: varchar("dynamic_pool_percent", { length: 16 }).notNull(), // 动态池占比 (70%)
-  genesisPoolPercent: varchar("genesis_pool_percent", { length: 16 }).notNull(), // 创世池占比 (30%)
+  weeklyPointsTarget: int("weekly_points_target").notNull(), // 该阶段周期预计释放积分
   // 分池比例
   pGenesisPercent: varchar("p_genesis_percent", { length: 16 }).notNull(), // P_Genesis占比 (40%)
   pEcoPercent: varchar("p_eco_percent", { length: 16 }).notNull(), // P_Eco占比 (40%)
   pTradePercent: varchar("p_trade_percent", { length: 16 }).notNull(), // P_Trade占比 (20%)
-  // 规则配置
-  rulesConfig: text("rules_config"), // JSON格式存储详细规则
   isActive: int("is_active").default(1).notNull(),
   createdBy: int("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

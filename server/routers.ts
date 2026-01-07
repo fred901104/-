@@ -529,17 +529,10 @@ export const appRouter = router({
     
     create: protectedProcedure.input(z.object({
       phase: z.string(),
-      phaseDescription: z.string(),
-      totalTokens: z.string(),
-      pointsPoolPercent: z.string(),
-      phaseReleasePercent: z.string(),
-      weekCount: z.number(),
-      dynamicPoolPercent: z.string(),
-      genesisPoolPercent: z.string(),
+      weeklyPointsTarget: z.number(),
       pGenesisPercent: z.string(),
       pEcoPercent: z.string(),
       pTradePercent: z.string(),
-      rulesConfig: z.string(),
     })).mutation(async ({ input, ctx }) => {
       const db = await import("./db");
       return db.createPointsConfig({
