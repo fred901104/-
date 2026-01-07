@@ -258,10 +258,15 @@ export default function Users() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
-                    <TableHead>姓名</TableHead>
-                    <TableHead>邮箱</TableHead>
+                    <TableHead>昵称</TableHead>
                     <TableHead>登录方式</TableHead>
-                    <TableHead>角色</TableHead>
+                    <TableHead>绑定X</TableHead>
+                    <TableHead>认证主播</TableHead>
+                    <TableHead>现货交易量</TableHead>
+                    <TableHead>合约交易量</TableHead>
+                    <TableHead>开播时长</TableHead>
+                    <TableHead>观看时长</TableHead>
+                    <TableHead>发帖数</TableHead>
                     <TableHead>状态</TableHead>
                     <TableHead>注册时间</TableHead>
                     <TableHead>操作</TableHead>
@@ -271,15 +276,38 @@ export default function Users() {
                   {users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">#{user.id}</TableCell>
-                      <TableCell>{user.name || "-"}</TableCell>
-                      <TableCell>{user.email || "-"}</TableCell>
+                      <TableCell>{user.nickname || user.name || "-"}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{user.loginMethod || "未知"}</Badge>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                          {user.role === "admin" ? "管理员" : "用户"}
-                        </Badge>
+                      <TableCell className="text-center">
+                        {user.isXBound ? (
+                          <CheckCircle className="h-4 w-4 text-green-600 mx-auto" />
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {user.isStreamerVerified ? (
+                          <Badge variant="default">认证</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ${parseFloat(user.spotTradingVolume || "0").toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ${parseFloat(user.futuresTradingVolume || "0").toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {Math.floor((user.totalStreamingMinutes || 0) / 60)}h {(user.totalStreamingMinutes || 0) % 60}m
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {Math.floor((user.totalWatchingMinutes || 0) / 60)}h {(user.totalWatchingMinutes || 0) % 60}m
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {user.totalPosts || 0}
                       </TableCell>
                       <TableCell>
                         {user.isBlacklisted === 1 ? (

@@ -1,5 +1,7 @@
 import { trpc } from "@/lib/trpc";
-import React from "react";
+import React, { useState, useMemo } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +16,11 @@ export default function Settlements() {
   const [distributeDialogOpen, setDistributeDialogOpen] = React.useState(false);
   const [selectedSettlement, setSelectedSettlement] = React.useState<any>(null);
   
+  // 筛选状态
+  const [filterYear, setFilterYear] = useState<string>("all");
+  const [filterWeek, setFilterWeek] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  
   const { data: settlements, isLoading, refetch } = trpc.settlements.list.useQuery();
   const { data: latest } = trpc.settlements.latest.useQuery();
   const distributeMutation = trpc.settlements.distribute.useMutation();
@@ -21,9 +28,33 @@ export default function Settlements() {
   // Handle null/undefined latest settlement
   const hasLatest = latest && latest !== null;
 
-  const confirmedCount = settlements?.filter(s => s.status === "confirmed").length || 0;
-  const distributedCount = settlements?.filter(s => s.status === "distributed").length || 0;
-  const totalPoints = (settlements?.reduce((sum, s) => sum + (s.totalPoints || 0), 0) || 0);
+  // 筛选逻辑
+  const filteredSettlements = useMemo(() => {
+    if (!settlements) return [];
+    return settlements.filter(s => {
+      if (filterYear !== "all" && s.year.toString() !== filterYear) return false;
+      if (filterWeek !== "all" && s.weekNumber.toString() !== filterWeek) return false;
+      if (filterStatus !== "all" && s.status !== filterStatus) return false;
+      return true;
+    });
+  }, [settlements, filterYear, filterWeek, filterStatus]);
+  
+  // 获取可用的年份和周次选项
+  const availableYears = useMemo(() => {
+    if (!settlements) return [];
+    const years = Array.from(new Set(settlements.map(s => s.year)));
+    return years.sort((a, b) => b - a);
+  }, [settlements]);
+  
+  const availableWeeks = useMemo(() => {
+    if (!settlements) return [];
+    const weeks = Array.from(new Set(settlements.map(s => s.weekNumber)));
+    return weeks.sort((a, b) => a - b);
+  }, [settlements]);
+  
+  const confirmedCount = filteredSettlements.filter(s => s.status === "confirmed").length || 0;
+  const distributedCount = filteredSettlements.filter(s => s.status === "distributed").length || 0;
+  const totalPoints = filteredSettlements.reduce((sum, s) => sum + (s.totalPoints || 0), 0) || 0;
 
   const statusLabels = {
     preview: { label: "预览中", icon: Clock, color: "text-yellow-600" },
@@ -137,6 +168,73 @@ export default function Settlements() {
           <CardDescription>查看历史周次的结算记录</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="space-y-2">
+              <Label>年份</Label>
+              <Select value={filterYear} onValueChange={setFilterYear}>
+                <SelectTrigger>
+                  <SelectValue placeholder="全部年份" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部年份</SelectItem>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={year.toString()}>{year}年</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>周次</Label>
+              <Select value={filterWeek} onValueChange={setFilterWeek}>
+                <SelectTrigger>
+                  <SelectValue placeholder="全部周次" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部周次</SelectItem>
+                  {availableWeeks.map(week => (
+                    <SelectItem key={week} value={week.toString()}>第{week}周</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>状态</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="全部状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  <SelectItem value="preview">预览中</SelectItem>
+                  <SelectItem value="confirmed">已确认</SelectItem>
+                  <SelectItem value="distributed">已发放</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>&nbsp;</Label>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setFilterYear("all");
+                  setFilterWeek("all");
+                  setFilterStatus("all");
+                }}
+              >
+                重置筛选
+              </Button>
+            </div>
+          </div>
+          
+          <div className="text-sm text-muted-foreground mb-4">
+            显示 {filteredSettlements.length} / {settlements?.length || 0} 条结算记录
+          </div>
+          
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
@@ -162,7 +260,7 @@ export default function Settlements() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {settlements?.map((settlement) => {
+                {filteredSettlements?.map((settlement) => {
                   const StatusIcon = statusLabels[settlement.status as keyof typeof statusLabels]?.icon;
 
                   return (

@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -14,9 +14,26 @@ export const users = mysqlTable("users", {
   /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
+  nickname: varchar("nickname", { length: 128 }), // 昵称
   email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }),
+  loginMethod: varchar("loginMethod", { length: 64 }), // 登录方式：邮箱/钱包/谷歌等
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  
+  // 绑定和认证状态
+  isXBound: int("is_x_bound").default(0).notNull(), // 0=未绑定, 1=已绑定X
+  isStreamerVerified: int("is_streamer_verified").default(0).notNull(), // 0=普通用户, 1=认证主播
+  
+  // 交易数据
+  spotTradingVolume: decimal("spot_trading_volume", { precision: 20, scale: 2 }).default("0.00").notNull(), // 现货累计交易量
+  futuresTradingVolume: decimal("futures_trading_volume", { precision: 20, scale: 2 }).default("0.00").notNull(), // 合约累计交易量
+  
+  // 直播数据
+  totalStreamingMinutes: int("total_streaming_minutes").default(0).notNull(), // 累计开播时长（分钟）
+  totalWatchingMinutes: int("total_watching_minutes").default(0).notNull(), // 累计观看时长（分钟）
+  
+  // 社区数据
+  totalPosts: int("total_posts").default(0).notNull(), // 发帖数
+  
   isBlacklisted: int("is_blacklisted").default(0).notNull(), // 0=正常, 1=黑名单
   blacklistReason: text("blacklist_reason"), // 拉黑原因
   blacklistedAt: timestamp("blacklisted_at"), // 拉黑时间
