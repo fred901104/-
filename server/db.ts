@@ -89,4 +89,103 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ============ Points Records ============
+export async function getUserPoints(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { pointsRecords } = await import("../drizzle/schema");
+  return db.select().from(pointsRecords).where(eq(pointsRecords.userId, userId));
+}
+
+export async function getTotalPointsByType() {
+  const db = await getDb();
+  if (!db) return { genesis: 0, eco: 0, trade: 0, total: 0 };
+  const { pointsRecords } = await import("../drizzle/schema");
+  const { sql } = await import("drizzle-orm");
+  
+  const result = await db.select({
+    type: pointsRecords.type,
+    total: sql<number>`SUM(${pointsRecords.amount})`
+  }).from(pointsRecords)
+    .where(eq(pointsRecords.status, "approved"))
+    .groupBy(pointsRecords.type);
+  
+  const genesis = result.find(r => r.type === "genesis")?.total || 0;
+  const eco = result.find(r => r.type === "eco")?.total || 0;
+  const trade = result.find(r => r.type === "trade")?.total || 0;
+  
+  return { genesis, eco, trade, total: genesis + eco + trade };
+}
+
+// ============ Tickets ============
+export async function getPendingTickets() {
+  const db = await getDb();
+  if (!db) return [];
+  const { tickets } = await import("../drizzle/schema");
+  return db.select().from(tickets).where(eq(tickets.status, "pending"));
+}
+
+export async function getTicketById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { tickets } = await import("../drizzle/schema");
+  const result = await db.select().from(tickets).where(eq(tickets.id, id)).limit(1);
+  return result[0];
+}
+
+// ============ Live Streams ============
+export async function getAnomalousStreams() {
+  const db = await getDb();
+  if (!db) return [];
+  const { liveStreams } = await import("../drizzle/schema");
+  return db.select().from(liveStreams).where(eq(liveStreams.isAnomalous, 1));
+}
+
+export async function getStreamById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { liveStreams } = await import("../drizzle/schema");
+  const result = await db.select().from(liveStreams).where(eq(liveStreams.id, id)).limit(1);
+  return result[0];
+}
+
+// ============ Trade Records ============
+export async function getSuspiciousTrades() {
+  const db = await getDb();
+  if (!db) return [];
+  const { tradeRecords } = await import("../drizzle/schema");
+  return db.select().from(tradeRecords).where(eq(tradeRecords.isSuspicious, 1));
+}
+
+// ============ Settlements ============
+export async function getLatestSettlement() {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { settlements } = await import("../drizzle/schema");
+  const { desc } = await import("drizzle-orm");
+  const result = await db.select().from(settlements).orderBy(desc(settlements.createdAt)).limit(1);
+  return result[0];
+}
+
+// ============ Core Identities ============
+export async function getCoreIdentities() {
+  const db = await getDb();
+  if (!db) return [];
+  const { coreIdentities } = await import("../drizzle/schema");
+  return db.select().from(coreIdentities);
+}
+
+// ============ Operation Logs ============
+export async function createOperationLog(log: {
+  operatorId: number;
+  action: string;
+  targetType?: string;
+  targetId?: number;
+  details?: string;
+  ipAddress?: string;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  const { operationLogs } = await import("../drizzle/schema");
+  await db.insert(operationLogs).values(log);
+}

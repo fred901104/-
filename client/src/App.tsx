@@ -4,17 +4,29 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
+import Tickets from "./pages/Tickets";
+import Streams from "./pages/Streams";
+import Trades from "./pages/Trades";
+import Settlements from "./pages/Settlements";
+import Users from "./pages/Users";
+import DashboardLayout from "./components/DashboardLayout";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
+    <DashboardLayout>
+      <Switch>
+        <Route path={"/"} component={Dashboard} />
+        <Route path={"/tickets"} component={Tickets} />
+        <Route path={"/streams"} component={Streams} />
+        <Route path={"/trades"} component={Trades} />
+        <Route path={"/settlements"} component={Settlements} />
+        <Route path={"/users"} component={Users} />
+        <Route path={"/404"} component={NotFound} />
+        {/* Final fallback route */}
+        <Route component={NotFound} />
+      </Switch>
+    </DashboardLayout>
   );
 }
 
