@@ -39,25 +39,31 @@ export default function Dashboard() {
   const todayGrowth = calculateGrowth(overview?.todayPoints || 0, 850);
   const activeUsersGrowth = calculateGrowth(overview?.participantUsers || 0, 95);
 
-  // 准备饼图数据（显示各池已产出积分占周期目标的百分比）
-  const pieData = overview?.poolRatios ? [
+  // 准备饼图数据（显示各池已结算发放的积分及其占比）
+  const pieData = overview?.settledPoints ? [
     { 
       name: "P_Genesis", 
-      value: overview.totalPoints.genesis, 
-      percent: Math.max(overview.poolRatios.genesis, 0.01).toFixed(2),
-      label: `P_Genesis (${Math.max(overview.poolRatios.genesis, 0.01).toFixed(2)}%)\n${overview.totalPoints.genesis.toLocaleString()}积分`
+      value: overview.settledPoints.genesis, 
+      percent: overview.settledPoints.total > 0 
+        ? Math.max((overview.settledPoints.genesis / overview.settledPoints.total) * 100, 0.01).toFixed(2)
+        : "0.01",
+      label: `P_Genesis (${overview.settledPoints.total > 0 ? Math.max((overview.settledPoints.genesis / overview.settledPoints.total) * 100, 0.01).toFixed(2) : "0.01"}%)\n${overview.settledPoints.genesis.toLocaleString()}积分`
     },
     { 
       name: "P_Eco", 
-      value: overview.totalPoints.eco, 
-      percent: Math.max(overview.poolRatios.eco, 0.01).toFixed(2),
-      label: `P_Eco (${Math.max(overview.poolRatios.eco, 0.01).toFixed(2)}%)\n${overview.totalPoints.eco.toLocaleString()}积分`
+      value: overview.settledPoints.eco, 
+      percent: overview.settledPoints.total > 0 
+        ? Math.max((overview.settledPoints.eco / overview.settledPoints.total) * 100, 0.01).toFixed(2)
+        : "0.01",
+      label: `P_Eco (${overview.settledPoints.total > 0 ? Math.max((overview.settledPoints.eco / overview.settledPoints.total) * 100, 0.01).toFixed(2) : "0.01"}%)\n${overview.settledPoints.eco.toLocaleString()}积分`
     },
     { 
       name: "P_Trade", 
-      value: overview.totalPoints.trade, 
-      percent: Math.max(overview.poolRatios.trade, 0.01).toFixed(2),
-      label: `P_Trade (${Math.max(overview.poolRatios.trade, 0.01).toFixed(2)}%)\n${overview.totalPoints.trade.toLocaleString()}积分`
+      value: overview.settledPoints.trade, 
+      percent: overview.settledPoints.total > 0 
+        ? Math.max((overview.settledPoints.trade / overview.settledPoints.total) * 100, 0.01).toFixed(2)
+        : "0.01",
+      label: `P_Trade (${overview.settledPoints.total > 0 ? Math.max((overview.settledPoints.trade / overview.settledPoints.total) * 100, 0.01).toFixed(2) : "0.01"}%)\n${overview.settledPoints.trade.toLocaleString()}积分`
     },
   ] : [];
 
@@ -235,7 +241,7 @@ export default function Dashboard() {
             ) : (
               <>
                 <div className="text-2xl font-bold">
-                  {overview?.totalPoints.total.toLocaleString()}
+                  {overview?.settledPoints?.total.toLocaleString() || 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   已经结算到用户端的总积分

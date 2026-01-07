@@ -68,7 +68,10 @@ export default function Settlements() {
   
   const confirmedCount = filteredSettlements.filter(s => s.status === "confirmed").length || 0;
   const distributedCount = filteredSettlements.filter(s => s.status === "distributed").length || 0;
-  const totalPoints = filteredSettlements.reduce((sum, s) => sum + (s.totalPoints || 0), 0) || 0;
+  // 累计发放：只统计已发放状态的积分
+  const totalPoints = filteredSettlements
+    .filter(s => s.status === "distributed")
+    .reduce((sum, s) => sum + (s.totalPoints || 0), 0) || 0;
 
   const statusLabels = {
     preview: { label: "预览中", icon: Clock, color: "text-yellow-600" },

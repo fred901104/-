@@ -48,8 +48,24 @@ export const appRouter = router({
       }).from(pointsRecords);
       
       // 获取当前阶段的积分配置
-      const { pointsConfigs } = await import("../drizzle/schema");
+      const { pointsConfigs, settlements } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
+      
+      // 查询已结算发放的积分（status='distributed'）
+      const settledPointsResult = await dbInstance.select({
+        genesis: sql<number>`COALESCE(SUM(${settlements.genesisPoints}), 0)`,
+        eco: sql<number>`COALESCE(SUM(${settlements.ecoPoints}), 0)`,
+        trade: sql<number>`COALESCE(SUM(${settlements.tradePoints}), 0)`,
+        total: sql<number>`COALESCE(SUM(${settlements.totalPoints}), 0)`
+      }).from(settlements)
+        .where(eq(settlements.status, 'distributed'));
+      
+      const settledPoints = {
+        genesis: Number(settledPointsResult[0]?.genesis || 0),
+        eco: Number(settledPointsResult[0]?.eco || 0),
+        trade: Number(settledPointsResult[0]?.trade || 0),
+        total: Number(settledPointsResult[0]?.total || 0)
+      };
       
       const activeConfig = await dbInstance.select()
         .from(pointsConfigs)
@@ -77,6 +93,7 @@ export const appRouter = router({
       
       return {
         totalPoints,
+        settledPoints, // 各池已结算发放的积分
         todayPoints: Number(todayPoints[0]?.total || 0),
         totalUsers: Number(totalUsers[0]?.count || 0),
         participantUsers: Number(participantUsers[0]?.count || 0),
