@@ -41,9 +41,24 @@ export default function Dashboard() {
 
   // 准备饼图数据（显示各池已产出积分占周期目标的百分比）
   const pieData = overview?.poolRatios ? [
-    { name: "P_Genesis", value: overview.totalPoints.genesis, percent: overview.poolRatios.genesis.toFixed(1) },
-    { name: "P_Eco", value: overview.totalPoints.eco, percent: overview.poolRatios.eco.toFixed(1) },
-    { name: "P_Trade", value: overview.totalPoints.trade, percent: overview.poolRatios.trade.toFixed(1) },
+    { 
+      name: "P_Genesis", 
+      value: overview.totalPoints.genesis, 
+      percent: Math.max(overview.poolRatios.genesis, 0.01).toFixed(2),
+      label: `P_Genesis (${Math.max(overview.poolRatios.genesis, 0.01).toFixed(2)}%)\n${overview.totalPoints.genesis.toLocaleString()}积分`
+    },
+    { 
+      name: "P_Eco", 
+      value: overview.totalPoints.eco, 
+      percent: Math.max(overview.poolRatios.eco, 0.01).toFixed(2),
+      label: `P_Eco (${Math.max(overview.poolRatios.eco, 0.01).toFixed(2)}%)\n${overview.totalPoints.eco.toLocaleString()}积分`
+    },
+    { 
+      name: "P_Trade", 
+      value: overview.totalPoints.trade, 
+      percent: Math.max(overview.poolRatios.trade, 0.01).toFixed(2),
+      label: `P_Trade (${Math.max(overview.poolRatios.trade, 0.01).toFixed(2)}%)\n${overview.totalPoints.trade.toLocaleString()}积分`
+    },
   ] : [];
 
   // 准备趋势图数据（模拟数据，实际应从API获取）
@@ -317,7 +332,7 @@ export default function Dashboard() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} (${percent}%)`}
+                    label={(entry) => entry.label}
                     outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"

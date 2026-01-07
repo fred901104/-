@@ -74,18 +74,25 @@ export default function Tickets() {
 
   // 导出功能
   const handleExport = () => {
-    const exportData = sortedTickets.map((item, index) => ({
-      '序号': sortedTickets.length - index,
-      '创建时间': formatDateTime(item.ticket.createdAt),
-      '工单号': `T${item.ticket.id.toString().padStart(6, '0')}`,
-      'UID': item.user?.openId || '-',
-      '提交人': item.user?.name || '-',
-      '工单类型': typeLabels[item.ticket.type as keyof typeof typeLabels].label,
-      'BUG等级': item.ticket.priority ? priorityLabels[item.ticket.priority as keyof typeof priorityLabels].label : '-',
-      '释放积分': item.ticket.finalScore || 0,
-      '状态': statusLabels[item.ticket.status as keyof typeof statusLabels].label,
-      '工单内容': item.ticket.content,
-    }));
+    const exportData = sortedTickets.map((item, index) => {
+      const date = new Date(item.ticket.createdAt);
+      const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+      const seqNum = String(item.ticket.id).padStart(6, '0');
+      const orderNo = `${dateStr}-GEN-${seqNum}`;
+      
+      return {
+        '序号': sortedTickets.length - index,
+        '创建时间': formatDateTime(item.ticket.createdAt),
+        '订单号': orderNo,
+        'UID': item.user?.openId || '-',
+        '提交人': item.user?.name || '-',
+        '工单类型': typeLabels[item.ticket.type as keyof typeof typeLabels].label,
+        'BUG等级': item.ticket.priority ? priorityLabels[item.ticket.priority as keyof typeof priorityLabels].label : '-',
+        '释放积分': item.ticket.finalScore || 0,
+        '状态': statusLabels[item.ticket.status as keyof typeof statusLabels].label,
+        '工单内容': item.ticket.content,
+      };
+    });
     exportToExcel(exportData, '工单管理', '工单列表');
     toast.success(`已导出 ${exportData.length} 条工单数据`);
   };
@@ -375,6 +382,7 @@ export default function Tickets() {
                   <TableRow>
                     <TableHead className="w-[60px]">序号</TableHead>
                     <TableHead>创建时间</TableHead>
+                    <TableHead>订单号</TableHead>
                     <TableHead>UID</TableHead>
                   <TableHead>内容</TableHead>
                   <TableHead>工单号</TableHead>
@@ -428,6 +436,14 @@ export default function Tickets() {
                           second: '2-digit',
                           hour12: false
                         })}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {(() => {
+                          const date = new Date(ticket.createdAt);
+                          const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+                          const seqNum = String(ticket.id).padStart(6, '0');
+                          return `${dateStr}-GEN-${seqNum}`;
+                        })()}
                       </TableCell>
                       <TableCell className="font-medium">#{ticket.id}</TableCell>
                       <TableCell>

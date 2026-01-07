@@ -213,7 +213,7 @@ export default function Users() {
               <Label>搜索用户</Label>
               <div className="flex gap-2">
                 <Input
-                  placeholder="姓名或邮箱"
+                  placeholder=""
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}

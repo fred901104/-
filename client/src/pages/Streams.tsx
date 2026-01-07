@@ -24,9 +24,13 @@ export default function Streams() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   
-  // 排序状态
+  // 主播贡献排序状态
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  
+  // 观众贡献排序状态
+  const [audienceSortKey, setAudienceSortKey] = useState<string | null>(null);
+  const [audienceSortDirection, setAudienceSortDirection] = useState<SortDirection>(null);
   
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -41,6 +45,22 @@ export default function Streams() {
     } else {
       setSortKey(key);
       setSortDirection("asc");
+    }
+  };
+  
+  const handleAudienceSort = (key: string) => {
+    if (audienceSortKey === key) {
+      if (audienceSortDirection === null) {
+        setAudienceSortDirection("asc");
+      } else if (audienceSortDirection === "asc") {
+        setAudienceSortDirection("desc");
+      } else {
+        setAudienceSortKey(null);
+        setAudienceSortDirection(null);
+      }
+    } else {
+      setAudienceSortKey(key);
+      setAudienceSortDirection("asc");
     }
   };
 
@@ -211,7 +231,7 @@ export default function Streams() {
   
   const totalPages = Math.ceil((sortedStreams?.length || 0) / pageSize);
 
-  const mockAudienceContributions = [
+  const mockAudienceContributionsRaw = [
     {
       id: 1,
       userId: 1001,
@@ -243,6 +263,26 @@ export default function Streams() {
       date: "2026-01-07",
     },
   ];
+  
+  // 观众贡献排序逻辑
+  const mockAudienceContributions = useMemo(() => {
+    if (!audienceSortKey || !audienceSortDirection) {
+      return mockAudienceContributionsRaw;
+    }
+    
+    const sorted = [...mockAudienceContributionsRaw].sort((a, b) => {
+      const aValue = a[audienceSortKey as keyof typeof a];
+      const bValue = b[audienceSortKey as keyof typeof b];
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return audienceSortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      return 0;
+    });
+    
+    return sorted;
+  }, [audienceSortKey, audienceSortDirection]);
 
   return (
     <div className="p-6 space-y-6">
@@ -315,6 +355,7 @@ export default function Streams() {
                         >
                           开播时间
                         </SortableTableHead>
+                        <TableHead>订单号</TableHead>
                         <TableHead>主播UID</TableHead>
                         <TableHead>主播名称</TableHead>
                         <SortableTableHead
@@ -364,6 +405,14 @@ export default function Streams() {
                               second: '2-digit',
                               hour12: false
                             })}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {(() => {
+                              const date = new Date(stream.stream.startTime);
+                              const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+                              const seqNum = String(stream.stream.id).padStart(6, '0');
+                              return `${dateStr}-ECO-${seqNum}`;
+                            })()}
                           </TableCell>
                           <TableCell className="font-mono">{stream.stream.streamerId}</TableCell>
                           <TableCell className="font-medium">{stream.streamer?.name || 'Unknown'}</TableCell>
@@ -505,13 +554,49 @@ export default function Streams() {
                     <TableRow>
                       <TableHead>序号</TableHead>
                       <TableHead>创建时间</TableHead>
+                      <TableHead>订单号</TableHead>
                       <TableHead>用户UID</TableHead>
                       <TableHead>用户名称</TableHead>
-                      <TableHead>观看时长</TableHead>
-                      <TableHead>打赏手续费</TableHead>
-                      <TableHead>聊天条数</TableHead>
-                      <TableHead>精选贴数</TableHead>
-                      <TableHead>P_Eco得分</TableHead>
+                      <SortableTableHead
+                        sortKey="watchMinutes"
+                        currentSortKey={audienceSortKey}
+                        currentSortDirection={audienceSortDirection}
+                        onSort={handleAudienceSort}
+                      >
+                        观看时长
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="gifts"
+                        currentSortKey={audienceSortKey}
+                        currentSortDirection={audienceSortDirection}
+                        onSort={handleAudienceSort}
+                      >
+                        打赏手续费
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="chatCount"
+                        currentSortKey={audienceSortKey}
+                        currentSortDirection={audienceSortDirection}
+                        onSort={handleAudienceSort}
+                      >
+                        聊天条数
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="featuredPosts"
+                        currentSortKey={audienceSortKey}
+                        currentSortDirection={audienceSortDirection}
+                        onSort={handleAudienceSort}
+                      >
+                        精选贴数
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="pEcoScore"
+                        currentSortKey={audienceSortKey}
+                        currentSortDirection={audienceSortDirection}
+                        onSort={handleAudienceSort}
+                      >
+                        P_Eco得分
+                      </SortableTableHead>
                       <TableHead>日期</TableHead>
                       <TableHead>操作</TableHead>
                     </TableRow>
@@ -524,6 +609,14 @@ export default function Streams() {
                       <TableRow key={contribution.id}>
                         <TableCell className="font-mono">{globalIndex}</TableCell>
                         <TableCell>{timestamp.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\//g, '/')}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {(() => {
+                            const date = new Date(contribution.date);
+                            const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+                            const seqNum = String(contribution.id).padStart(6, '0');
+                            return `${dateStr}-ECO-${seqNum}`;
+                          })()}
+                        </TableCell>
                         <TableCell className="font-mono">{contribution.userId}</TableCell>
                         <TableCell className="font-medium">{contribution.userName}</TableCell>
                         <TableCell>

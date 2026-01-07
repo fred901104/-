@@ -21,17 +21,25 @@ export default function Trades() {
 
   // 导出功能
   const handleExport = () => {
-    const exportData = sortedTrades.map((item, index) => ({
-      '序号': sortedTrades.length - index,
-      '交易时间': formatDateTime(item.trade.createdAt),
-      '交易者UID': item.user?.openId || '-',
-      '交易者名称': item.user?.name || '-',
-      '交易类型': item.trade.tradeType === 'spot' ? '现货' : '合约',
-      '交易量(USDT)': item.trade.volume,
-      '手续费(USDT)': item.trade.feeAmount,
-      'P_Trade得分': item.trade.estimatedPoints || 0,
-      '状态': item.trade.status === 'frozen' ? '已冻结' : '正常',
-    }));
+    const exportData = sortedTrades.map((item, index) => {
+      const date = new Date(item.trade.createdAt);
+      const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+      const seqNum = String(item.trade.id).padStart(6, '0');
+      const orderNo = `${dateStr}-TRD-${seqNum}`;
+      
+      return {
+        '序号': sortedTrades.length - index,
+        '交易时间': formatDateTime(item.trade.createdAt),
+        '订单号': orderNo,
+        '交易者UID': item.user?.openId || '-',
+        '交易者名称': item.user?.name || '-',
+        '交易类型': item.trade.tradeType === 'spot' ? '现货' : '合约',
+        '交易量(USDT)': item.trade.volume,
+        '手续费(USDT)': item.trade.feeAmount,
+        'P_Trade得分': item.trade.estimatedPoints || 0,
+        '状态': item.trade.status === 'frozen' ? '已冻结' : '正常',
+      };
+    });
     exportToExcel(exportData, '交易账本', '交易列表');
     toast.success(`已导出 ${exportData.length} 条交易数据`);
   };
@@ -303,6 +311,7 @@ export default function Trades() {
                     >
                       交易时间
                     </SortableTableHead>
+                    <TableHead>订单号</TableHead>
                     <TableHead>用户UID</TableHead>
                     <TableHead>交易类型</TableHead>
                     <TableHead>交易对</TableHead>
@@ -348,6 +357,14 @@ export default function Trades() {
                             second: '2-digit',
                             hour12: false
                           })}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {(() => {
+                            const date = new Date(trade.trade.createdAt);
+                            const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+                            const seqNum = String(trade.trade.id).padStart(6, '0');
+                            return `${dateStr}-TRD-${seqNum}`;
+                          })()}
                         </TableCell>
                         <TableCell className="font-mono">{trade.trade.userId}</TableCell>
                         <TableCell>
