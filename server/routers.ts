@@ -69,6 +69,25 @@ export const appRouter = router({
       
       return trends.reverse();
     }),
+    
+    metrics: protectedProcedure.input(z.object({ phase: z.string() })).query(async ({ input }) => {
+      // 返回模拟数据，实际应从 metrics_stats 表查询
+      return {
+        contributorsCount: 234,
+        totalStreamHours: 1250.5,
+        tippersCount: 89,
+        totalTipAmount: 5420.50,
+        postersCount: 156,
+        totalPosts: 892,
+        featuredPosts: 45,
+        spotVolume: 2450000,
+        spotFees: 2450,
+        futuresVolume: 8900000,
+        futuresFees: 8900,
+        bugReports: 67,
+        totalContributors: 1234,
+      };
+    }),
   }),
   
   // Tickets (P_Genesis)
