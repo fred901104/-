@@ -1,0 +1,1 @@
+ALTER TABLE `points_configs` ADD `total_budget` int NOT NULL;

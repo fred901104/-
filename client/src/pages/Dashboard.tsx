@@ -14,9 +14,24 @@ import {
 } from "recharts";
 
 const COLORS = {
-  genesis: "#8b5cf6",
-  eco: "#3b82f6", 
-  trade: "#10b981",
+  P_Genesis: "#8b5cf6",
+  P_Eco: "#3b82f6",
+  P_Trade: "#10b981",
+};
+
+// 健康度状态判断函数
+const getHealthStatus = (ratio: number) => {
+  if (ratio < 0.5) {
+    return { label: '不健康', color: 'text-red-600', bgColor: 'bg-red-50' };
+  } else if (ratio >= 0.75 && ratio <= 1.25) {
+    return { label: '健康', color: 'text-green-600', bgColor: 'bg-green-50' };
+  } else if (ratio > 1.25 && ratio <= 2.0) {
+    return { label: '观察1', color: 'text-yellow-600', bgColor: 'bg-yellow-50' };
+  } else if (ratio >= 0.5 && ratio < 0.75) {
+    return { label: '观察2', color: 'text-yellow-600', bgColor: 'bg-yellow-50' };
+  } else {
+    return { label: '危险', color: 'text-red-600', bgColor: 'bg-red-50' };
+  }
 };
 
 export default function Dashboard() {
@@ -39,31 +54,32 @@ export default function Dashboard() {
   const todayGrowth = calculateGrowth(overview?.todayPoints || 0, 850);
   const activeUsersGrowth = calculateGrowth(overview?.participantUsers || 0, 95);
 
-  // 准备饼图数据（显示各池已结算发放的积分及其占比）
-  const pieData = overview?.settledPoints ? [
+  // 准备饼图数据（显示各池已释放/待释放百分比）
+  const pieData = overview?.settledPoints && overview?.targetPoints ? [
     { 
       name: "P_Genesis", 
       value: overview.settledPoints.genesis, 
-      percent: overview.settledPoints.total > 0 
-        ? Math.max((overview.settledPoints.genesis / overview.settledPoints.total) * 100, 0.01).toFixed(2)
+      // 计算已释放/待释放百分比（精确到0.01%）
+      releasePercent: overview.targetPoints.genesis > 0 
+        ? Math.max((overview.settledPoints.genesis / overview.targetPoints.genesis) * 100, 0.01).toFixed(2)
         : "0.01",
-      label: `P_Genesis (${overview.settledPoints.total > 0 ? Math.max((overview.settledPoints.genesis / overview.settledPoints.total) * 100, 0.01).toFixed(2) : "0.01"}%)\n${overview.settledPoints.genesis.toLocaleString()}积分`
+      label: `P_Genesis ${overview.settledPoints.genesis.toLocaleString()}积分\n(${overview.targetPoints.genesis > 0 ? Math.max((overview.settledPoints.genesis / overview.targetPoints.genesis) * 100, 0.01).toFixed(2) : "0.01"}%)`
     },
     { 
       name: "P_Eco", 
       value: overview.settledPoints.eco, 
-      percent: overview.settledPoints.total > 0 
-        ? Math.max((overview.settledPoints.eco / overview.settledPoints.total) * 100, 0.01).toFixed(2)
+      releasePercent: overview.targetPoints.eco > 0 
+        ? Math.max((overview.settledPoints.eco / overview.targetPoints.eco) * 100, 0.01).toFixed(2)
         : "0.01",
-      label: `P_Eco (${overview.settledPoints.total > 0 ? Math.max((overview.settledPoints.eco / overview.settledPoints.total) * 100, 0.01).toFixed(2) : "0.01"}%)\n${overview.settledPoints.eco.toLocaleString()}积分`
+      label: `P_Eco ${overview.settledPoints.eco.toLocaleString()}积分\n(${overview.targetPoints.eco > 0 ? Math.max((overview.settledPoints.eco / overview.targetPoints.eco) * 100, 0.01).toFixed(2) : "0.01"}%)`
     },
     { 
       name: "P_Trade", 
       value: overview.settledPoints.trade, 
-      percent: overview.settledPoints.total > 0 
-        ? Math.max((overview.settledPoints.trade / overview.settledPoints.total) * 100, 0.01).toFixed(2)
+      releasePercent: overview.targetPoints.trade > 0 
+        ? Math.max((overview.settledPoints.trade / overview.targetPoints.trade) * 100, 0.01).toFixed(2)
         : "0.01",
-      label: `P_Trade (${overview.settledPoints.total > 0 ? Math.max((overview.settledPoints.trade / overview.settledPoints.total) * 100, 0.01).toFixed(2) : "0.01"}%)\n${overview.settledPoints.trade.toLocaleString()}积分`
+      label: `P_Trade ${overview.settledPoints.trade.toLocaleString()}积分\n(${overview.targetPoints.trade > 0 ? Math.max((overview.settledPoints.trade / overview.targetPoints.trade) * 100, 0.01).toFixed(2) : "0.01"}%)`
     },
   ] : [];
 
@@ -324,7 +340,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>各个池积分占比</CardTitle>
             <CardDescription>
-              P_Genesis / P_Eco / P_Trade 周期内，各个分池已经产出积分/对应池可释放积分的占比
+              P_Genesis / P_Eco / P_Trade 周期内，各个分池已经释放积分/对应池可释放积分的占比
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -354,6 +370,43 @@ export default function Dashboard() {
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
+            )}
+            
+            {/* 健康度指标 */}
+            {!overviewLoading && overview && (
+              <div className="mt-6 space-y-3">
+                <div className="text-sm font-medium text-muted-foreground">积分池健康度</div>
+                <div className="grid gap-3">
+                  {[
+                    { name: 'P_Genesis', key: 'genesis', color: COLORS.P_Genesis },
+                    { name: 'P_Eco', key: 'eco', color: COLORS.P_Eco },
+                    { name: 'P_Trade', key: 'trade', color: COLORS.P_Trade }
+                  ].map(pool => {
+                    // 计算健康度指标：已产出积分 / 周期目标积分
+                    const poolKey = pool.key as 'genesis' | 'eco' | 'trade';
+                    const produced = overview.totalPoints[poolKey];
+                    const target = overview.targetPoints[poolKey];
+                    const healthRatio = target > 0 ? produced / target : 0;
+                    const healthStatus = getHealthStatus(healthRatio);
+                    
+                    return (
+                      <div key={pool.name} className="flex items-center justify-between p-3 rounded-lg border">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: pool.color }} />
+                          <span className="font-medium">{pool.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">健康度:</span>
+                          <span className={`font-medium ${healthStatus.color}`}>{healthRatio.toFixed(2)}</span>
+                          <span className={`text-xs px-2 py-1 rounded ${healthStatus.bgColor} ${healthStatus.color}`}>
+                            {healthStatus.label}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>

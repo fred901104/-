@@ -217,6 +217,7 @@ export type InsertFeaturedContent = typeof featuredContents.$inferInsert;
 export const pointsConfigs = mysqlTable("points_configs", {
   id: int("id").autoincrement().primaryKey(),
   phase: varchar("phase", { length: 32 }).notNull(), // S0, S1, S2
+  totalBudget: int("total_budget").notNull(), // 该阶段总预算积分
   weeklyPointsTarget: int("weekly_points_target").notNull(), // 该阶段周期预计释放积分
   // 分池比例
   pGenesisPercent: varchar("p_genesis_percent", { length: 16 }).notNull(), // P_Genesis占比 (40%)

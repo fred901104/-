@@ -73,15 +73,24 @@ export const appRouter = router({
         .limit(1);
       
       let poolRatios = { genesis: 40, eco: 40, trade: 20 }; // 默认配置比例
+      let targetPoints = { genesis: 0, eco: 0, trade: 0, total: 0 }; // 各池待释放积分（周期目标）
       
       if (activeConfig.length > 0) {
         const config = activeConfig[0];
         const weeklyTarget = config.weeklyPointsTarget;
+        const totalBudget = config.totalBudget; // 阶段总预算
         
-        // 计算各池的周期目标积分
-        const genesisTarget = weeklyTarget * (parseFloat(config.pGenesisPercent) / 100);
-        const ecoTarget = weeklyTarget * (parseFloat(config.pEcoPercent) / 100);
-        const tradeTarget = weeklyTarget * (parseFloat(config.pTradePercent) / 100);
+        // 计算各池的阶段总预算（待释放积分）
+        const genesisTarget = totalBudget * (parseFloat(config.pGenesisPercent) / 100);
+        const ecoTarget = totalBudget * (parseFloat(config.pEcoPercent) / 100);
+        const tradeTarget = totalBudget * (parseFloat(config.pTradePercent) / 100);
+        
+        targetPoints = {
+          genesis: genesisTarget,
+          eco: ecoTarget,
+          trade: tradeTarget,
+          total: totalBudget
+        };
         
         // 计算各池实际已产出积分占比
         poolRatios = {
@@ -94,6 +103,7 @@ export const appRouter = router({
       return {
         totalPoints,
         settledPoints, // 各池已结算发放的积分
+        targetPoints, // 各池待释放积分（周期目标）
         todayPoints: Number(todayPoints[0]?.total || 0),
         totalUsers: Number(totalUsers[0]?.count || 0),
         participantUsers: Number(participantUsers[0]?.count || 0),

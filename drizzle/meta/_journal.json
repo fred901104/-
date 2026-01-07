@@ -50,6 +50,13 @@
       "when": 1767802298844,
       "tag": "0006_lethal_chronomancer",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1767811576665,
+      "tag": "0007_petite_tiger_shark",
+      "breakpoints": true
     }
   ]
 }

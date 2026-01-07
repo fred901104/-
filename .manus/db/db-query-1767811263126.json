@@ -1,0 +1,46 @@
+{
+  "query": "SELECT id, phase, weekly_points_target, p_genesis_percent, p_eco_percent, p_trade_percent, is_active FROM points_configs;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2KMpFtxdhMwESN4.root --database h7v6obutbNu2TWm3TCgiTk --execute SELECT id, phase, weekly_points_target, p_genesis_percent, p_eco_percent, p_trade_percent, is_active FROM points_configs;",
+  "rows": [
+    {
+      "id": "1",
+      "phase": "S0 Alpha",
+      "weekly_points_target": "0",
+      "p_genesis_percent": "40.00",
+      "p_eco_percent": "40.00",
+      "p_trade_percent": "20.00",
+      "is_active": "1"
+    },
+    {
+      "id": "2",
+      "phase": "S0",
+      "weekly_points_target": "100000",
+      "p_genesis_percent": "40",
+      "p_eco_percent": "40",
+      "p_trade_percent": "20",
+      "is_active": "1"
+    },
+    {
+      "id": "3",
+      "phase": "S0",
+      "weekly_points_target": "100000",
+      "p_genesis_percent": "40",
+      "p_eco_percent": "40",
+      "p_trade_percent": "20",
+      "is_active": "1"
+    },
+    {
+      "id": "4",
+      "phase": "S0",
+      "weekly_points_target": "100000",
+      "p_genesis_percent": "40",
+      "p_eco_percent": "40",
+      "p_trade_percent": "20",
+      "is_active": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tphase\tweekly_points_target\tp_genesis_percent\tp_eco_percent\tp_trade_percent\tis_active\n1\tS0 Alpha\t0\t40.00\t40.00\t20.00\t1\n2\tS0\t100000\t40\t40\t20\t1\n3\tS0\t100000\t40\t40\t20\t1\n4\tS0\t100000\t40\t40\t20\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1516
+}
