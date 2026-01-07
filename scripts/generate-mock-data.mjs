@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import * as schema from "../drizzle/schema.js";
+import * as schema from "../drizzle/schema.ts";
 
 const db = drizzle(process.env.DATABASE_URL);
 
@@ -112,10 +112,11 @@ async function generateMockData() {
       userId,
       type,
       title: `${type === "bug" ? "Bug" : type === "suggestion" ? "建议" : "关键信息"} #${i + 1}`,
-      description: `这是一个${type}的详细描述内容...`,
+      content: `这是一个${type}的详细描述内容。${type === 'bug' ? '重现步骤：1. 打开应用 2. 点击按钮 3. 出现错误' : type === 'suggestion' ? '建议增加这个功能以提升用户体验' : '提供关键产品反馈信息'}`,
       priority,
       status,
-      points: status === "approved" ? parseFloat(basePoints.toFixed(2)) : 0,
+      baseScore: status === "approved" ? Math.floor(basePoints) : 0,
+      finalScore: status === "approved" ? Math.floor(basePoints) : 0,
       reviewedBy: status !== "pending" ? randomChoice(userIds.slice(0, 10)) : null,
       createdAt: new Date(startDate.getTime() + randomInt(0, daysDiff) * 24 * 60 * 60 * 1000),
     });
@@ -139,14 +140,12 @@ async function generateMockData() {
     const isFeatured = Math.random() < 0.1;
     
     streams.push({
-      userId,
+      streamerId: userId,
       title: `直播 #${i + 1}`,
       durationMinutes,
       avgCCU,
       peakCCU,
       chatMessages,
-      isFeatured: isFeatured ? 1 : 0,
-      isAbnormal: Math.random() < 0.05 ? 1 : 0,
       createdAt: new Date(startDate.getTime() + randomInt(0, daysDiff) * 24 * 60 * 60 * 1000),
     });
   }
@@ -175,12 +174,18 @@ async function generateMockData() {
       audienceContributions.push({
         userId,
         date,
-        watchMinutes,
+        watchDuration: watchMinutes,
+        validWatchDuration: Math.min(watchMinutes, 240), // 最多4小时
         tipAmount: parseFloat(tipAmount.toFixed(2)),
         tipFee: parseFloat((tipAmount * 0.03).toFixed(2)),
+        tipScore: parseFloat((tipAmount * 0.03 * 5).toFixed(2)),
+        watchScore: parseFloat((Math.min(watchMinutes, 240) / 60 * 1).toFixed(2)),
         chatCount,
-        featuredPosts,
-        score: parseFloat(score.toFixed(2)),
+        validChatCount: Math.floor(chatCount / 2), // 简化：假设一半有效
+        chatScore: parseFloat((Math.floor(chatCount / 2) * 0.2).toFixed(2)),
+        featuredPostCount: featuredPosts,
+        featuredPostScore: parseFloat((featuredPosts * 5).toFixed(2)),
+        totalScore: parseFloat(score.toFixed(2)),
       });
     }
     
@@ -214,12 +219,12 @@ async function generateMockData() {
     trades.push({
       userId,
       tradeType,
+      tradingPair: randomChoice(["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT"]),
       volume: parseFloat(volume.toFixed(2)),
       fee: parseFloat(fee.toFixed(2)),
-      holdMinutes,
-      isSuspicious: isSuspicious ? 1 : 0,
-      status: isSuspicious ? "frozen" : "settled",
-      suspiciousReason: isSuspicious ? "可疑对敲交易" : null,
+      holdingMinutes: holdMinutes,
+      orderCount: randomInt(1, 10),
+      status: isSuspicious ? "suspicious" : "normal",
       createdAt: new Date(startDate.getTime() + randomInt(0, daysDiff) * 24 * 60 * 60 * 1000),
     });
     
@@ -265,7 +270,7 @@ async function generateMockData() {
   }
   
   // Trade积分
-  const settledTrades = trades.filter(t => t.status === "settled");
+  const settledTrades = trades.filter(t => t.status === "normal");
   for (const trade of settledTrades.slice(0, 10000)) {
     const points = trade.fee * 5 + (trade.holdMinutes > 60 ? 10 : 0);
     pointsRecords.push({
