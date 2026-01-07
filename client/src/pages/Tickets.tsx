@@ -122,7 +122,7 @@ export default function Tickets() {
       {/* Tickets Table */}
       <Card>
         <CardHeader>
-          <CardTitle>工单列表</CardTitle>
+          <CardTitle>反馈工单列表</CardTitle>
           <CardDescription>点击"审核"按钮进行定级打分</CardDescription>
         </CardHeader>
         <CardContent>
@@ -136,13 +136,13 @@ export default function Tickets() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>标题</TableHead>
+                  <TableHead>UID</TableHead>
+                  <TableHead>内容</TableHead>
+                  <TableHead>工单号</TableHead>
                   <TableHead>提交人</TableHead>
-                  <TableHead>优先级</TableHead>
+                  <TableHead>BUG等级（可修改）</TableHead>
                   <TableHead>状态</TableHead>
-                  <TableHead>积分</TableHead>
+                  <TableHead>释放积分</TableHead>
                   <TableHead>提交时间</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
