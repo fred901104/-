@@ -110,9 +110,10 @@ export async function getTotalPointsByType() {
     .where(eq(pointsRecords.status, "approved"))
     .groupBy(pointsRecords.type);
   
-  const genesis = result.find(r => r.type === "genesis")?.total || 0;
-  const eco = result.find(r => r.type === "eco")?.total || 0;
-  const trade = result.find(r => r.type === "trade")?.total || 0;
+  // 确保转换为数字类型
+  const genesis = Number(result.find(r => r.type === "genesis")?.total || 0);
+  const eco = Number(result.find(r => r.type === "eco")?.total || 0);
+  const trade = Number(result.find(r => r.type === "trade")?.total || 0);
   
   return { genesis, eco, trade, total: genesis + eco + trade };
 }

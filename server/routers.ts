@@ -44,8 +44,8 @@ export const appRouter = router({
       
       return {
         totalPoints,
-        todayPoints: todayPoints[0]?.total || 0,
-        activeUsers: activeUsers[0]?.count || 0,
+        todayPoints: Number(todayPoints[0]?.total || 0),
+        activeUsers: Number(activeUsers[0]?.count || 0),
       };
     }),
     
@@ -67,7 +67,13 @@ export const appRouter = router({
         .orderBy(sql`DATE(created_at) DESC`)
         .limit(30);
       
-      return trends.reverse();
+      // 确保转换为数字类型
+      return trends.reverse().map(t => ({
+        date: t.date,
+        genesis: Number(t.genesis || 0),
+        eco: Number(t.eco || 0),
+        trade: Number(t.trade || 0)
+      }));
     }),
     
     metrics: protectedProcedure.input(z.object({ phase: z.string() })).query(async ({ input }) => {

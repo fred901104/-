@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination } from "@/components/Pagination";
 import { Calculator, CheckCircle, Clock, TrendingUp, Download, Send } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,10 @@ export default function Settlements() {
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterWeek, setFilterWeek] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   
   const { data: settlements, isLoading, refetch } = trpc.settlements.list.useQuery();
   const { data: latest } = trpc.settlements.latest.useQuery();
@@ -51,6 +56,15 @@ export default function Settlements() {
     const weeks = Array.from(new Set(settlements.map(s => s.weekNumber)));
     return weeks.sort((a, b) => a - b);
   }, [settlements]);
+  
+  // 分页逻辑
+  const paginatedSettlements = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredSettlements.slice(startIndex, endIndex);
+  }, [filteredSettlements, currentPage, pageSize]);
+  
+  const totalPages = Math.ceil(filteredSettlements.length / pageSize);
   
   const confirmedCount = filteredSettlements.filter(s => s.status === "confirmed").length || 0;
   const distributedCount = filteredSettlements.filter(s => s.status === "distributed").length || 0;
@@ -242,9 +256,11 @@ export default function Settlements() {
               ))}
             </div>
           ) : (
+            <div>
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[60px]">序号</TableHead>
                   <TableHead>周次</TableHead>
                   <TableHead>年份</TableHead>
                   <TableHead>日期范围</TableHead>
@@ -260,11 +276,13 @@ export default function Settlements() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSettlements?.map((settlement) => {
+                {paginatedSettlements?.map((settlement, index) => {
+                  const globalIndex = (currentPage - 1) * pageSize + index + 1;
                   const StatusIcon = statusLabels[settlement.status as keyof typeof statusLabels]?.icon;
 
                   return (
                     <TableRow key={settlement.id}>
+                      <TableCell className="text-center text-muted-foreground">{globalIndex}</TableCell>
                       <TableCell className="font-medium">第{settlement.weekNumber}周</TableCell>
                       <TableCell>{settlement.year}</TableCell>
                       <TableCell className="text-sm">
@@ -311,6 +329,22 @@ export default function Settlements() {
                 })}
               </TableBody>
             </Table>
+            
+            {/* 分页组件 */}
+            {filteredSettlements && filteredSettlements.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={filteredSettlements.length}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setCurrentPage(1);
+                }}
+              />
+            )}
+            </div>
           )}
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilterBar, FilterConfig, FilterValues } from "@/components/FilterBar";
+import { Pagination } from "@/components/Pagination";
 import { AlertCircle, CheckCircle, Lock, Unlock, TrendingUp, DollarSign, Clock, AlertTriangle, Download } from "lucide-react";
 import { exportToExcel, formatTradeForExport } from "@/lib/export";
 import { toast } from "sonner";
@@ -16,6 +17,10 @@ export default function Trades() {
   const [freezeDialogOpen, setFreezeDialogOpen] = useState(false);
   const [frozenDetailsOpen, setFrozenDetailsOpen] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<any>(null);
+  
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const { data: trades, isLoading } = trpc.trades.list.useQuery();
   const freezeMutation = trpc.trades.freeze.useMutation();
@@ -43,6 +48,16 @@ export default function Trades() {
     ],
     showDateRange: true,
   };
+
+  // 分页逻辑
+  const paginatedTrades = useMemo(() => {
+    if (!trades) return [];
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return trades.slice(startIndex, endIndex);
+  }, [trades, currentPage, pageSize]);
+  
+  const totalPages = Math.ceil((trades?.length || 0) / pageSize);
 
   // 模拟冻结记录数据
   const mockFrozenRecords = [
@@ -212,6 +227,7 @@ export default function Trades() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[60px]">序号</TableHead>
                     <TableHead>用户UID</TableHead>
                     <TableHead>交易类型</TableHead>
                     <TableHead>交易对</TableHead>
@@ -225,12 +241,14 @@ export default function Trades() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {trades?.map((trade) => {
+                  {paginatedTrades?.map((trade, index) => {
+                    const globalIndex = (currentPage - 1) * pageSize + index + 1;
                     const isSuspicious = Math.random() > 0.8; // 模拟可疑检测
                     const isFrozen = Math.random() > 0.9; // 模拟冻结状态
                     
                     return (
                       <TableRow key={trade.trade.id}>
+                        <TableCell className="text-center text-muted-foreground">{globalIndex}</TableCell>
                         <TableCell className="font-mono">{trade.trade.userId}</TableCell>
                         <TableCell>
                           <Badge variant={trade.trade.tradeType === "spot" ? "default" : "secondary"}>
@@ -330,6 +348,21 @@ export default function Trades() {
                   })}
                 </TableBody>
               </Table>
+              
+              {/* 分页组件 */}
+              {!isLoading && trades && trades.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  pageSize={pageSize}
+                  totalItems={trades.length}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={(newSize) => {
+                    setPageSize(newSize);
+                    setCurrentPage(1);
+                  }}
+                />
+              )}
             </div>
           )}
         </CardContent>

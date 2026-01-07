@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilterBar, FilterConfig, FilterValues } from "@/components/FilterBar";
+import { Pagination } from "@/components/Pagination";
 import { Radio, Users, Clock, MessageSquare, DollarSign, Star, TrendingUp, Activity, Download } from "lucide-react";
 import { exportToExcel, formatStreamForExport } from "@/lib/export";
 import { toast } from "sonner";
@@ -17,6 +18,10 @@ export default function Streams() {
   const [filterValues, setFilterValues] = useState<FilterValues>({ search: "" });
   const [selectedStream, setSelectedStream] = useState<number | null>(null);
   const [ccuDialogOpen, setCcuDialogOpen] = useState(false);
+  
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const { data: streams, isLoading } = trpc.streams.list.useQuery();
 
@@ -99,7 +104,16 @@ export default function Streams() {
     return score.toFixed(2);
   };
 
-  // 模拟观众贡献数据
+  // 分页逻辑
+  const paginatedStreams = useMemo(() => {
+    if (!streams) return [];
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return streams.slice(startIndex, endIndex);
+  }, [streams, currentPage, pageSize]);
+  
+  const totalPages = Math.ceil((streams?.length || 0) / pageSize);
+
   const mockAudienceContributions = [
     {
       id: 1,
@@ -201,6 +215,7 @@ export default function Streams() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[60px]">序号</TableHead>
                         <TableHead>主播UID</TableHead>
                         <TableHead>主播名称</TableHead>
                         <TableHead>直播时长</TableHead>
@@ -214,8 +229,11 @@ export default function Streams() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {streams?.map((stream) => (
+                      {paginatedStreams?.map((stream, index) => {
+                        const globalIndex = (currentPage - 1) * pageSize + index + 1;
+                        return (
                         <TableRow key={stream.stream.id}>
+                          <TableCell className="text-center text-muted-foreground">{globalIndex}</TableCell>
                           <TableCell className="font-mono">{stream.stream.streamerId}</TableCell>
                           <TableCell className="font-medium">{stream.streamer?.name || 'Unknown'}</TableCell>
                           <TableCell>
@@ -273,9 +291,25 @@ export default function Streams() {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      );
+                      })}
                     </TableBody>
                   </Table>
+                  
+                  {/* 分页组件 */}
+                  {!isLoading && streams && streams.length > 0 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      pageSize={pageSize}
+                      totalItems={streams.length}
+                      onPageChange={setCurrentPage}
+                      onPageSizeChange={(newSize) => {
+                        setPageSize(newSize);
+                        setCurrentPage(1);
+                      }}
+                    />
+                  )}
                 </div>
               )}
             </CardContent>
