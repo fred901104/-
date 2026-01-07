@@ -34,7 +34,8 @@ interface FilterBarProps {
 }
 
 export function FilterBar({ config, values, onChange, onReset }: FilterBarProps) {
-  const [showFilters, setShowFilters] = useState(false);
+  // 筛选器始终展开显示
+  const showFilters = true;
 
   const handleSearchChange = (search: string) => {
     onChange({ ...values, search });
@@ -78,13 +79,7 @@ export function FilterBar({ config, values, onChange, onReset }: FilterBarProps)
             className="pl-10"
           />
         </div>
-        <Button
-          variant={showFilters ? "default" : "outline"}
-          size="icon"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <Filter className="h-4 w-4" />
-        </Button>
+        {/* 筛选器始终展开，移除折叠按钮 */}
         {hasActiveFilters && (
           <Button
             variant="ghost"

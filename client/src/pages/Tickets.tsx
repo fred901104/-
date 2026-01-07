@@ -160,11 +160,93 @@ export default function Tickets() {
         </Card>
       </div>
 
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>筛选和搜索</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label>工单类型</Label>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="全部类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部类型</SelectItem>
+                  <SelectItem value="bug">Bug</SelectItem>
+                  <SelectItem value="suggestion">建议</SelectItem>
+                  <SelectItem value="info">必要信息</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>工单状态</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="全部状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  <SelectItem value="pending">待审核</SelectItem>
+                  <SelectItem value="approved">已通过</SelectItem>
+                  <SelectItem value="rejected">已驳回</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>优先级</Label>
+              <Select value={filterPriority} onValueChange={setFilterPriority}>
+                <SelectTrigger>
+                  <SelectValue placeholder="全部优先级" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部优先级</SelectItem>
+                  <SelectItem value="p0">P0</SelectItem>
+                  <SelectItem value="p1">P1</SelectItem>
+                  <SelectItem value="p2">P2</SelectItem>
+                  <SelectItem value="p3">P3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>搜索</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="工单号/UID/提交人"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFilterType("all");
+                    setFilterStatus("all");
+                    setFilterPriority("all");
+                    setSearchQuery("");
+                  }}
+                >
+                  重置
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 text-sm text-muted-foreground">
+            显示 {filteredTickets.length} / {tickets?.length || 0} 条工单
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Tickets Table */}
       <Card>
         <CardHeader>
           <CardTitle>反馈工单列表</CardTitle>
-          <CardDescription>点击"审核"按钮进行定级打分</CardDescription>
+          <CardDescription>点击“审核”按钮进行定级打分</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -189,7 +271,7 @@ export default function Tickets() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tickets?.map((item) => {
+                {filteredTickets?.map((item) => {
                   const ticket = item.ticket;
                   const user = item.user;
                   const TypeIcon = typeLabels[ticket.type as keyof typeof typeLabels]?.icon;
