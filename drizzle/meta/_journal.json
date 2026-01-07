@@ -29,6 +29,13 @@
       "when": 1767796232207,
       "tag": "0003_puzzling_black_cat",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1767797145927,
+      "tag": "0004_tan_power_pack",
+      "breakpoints": true
     }
   ]
 }

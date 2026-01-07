@@ -17,6 +17,10 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  isBlacklisted: int("is_blacklisted").default(0).notNull(), // 0=正常, 1=黑名单
+  blacklistReason: text("blacklist_reason"), // 拉黑原因
+  blacklistedAt: timestamp("blacklisted_at"), // 拉黑时间
+  blacklistedBy: int("blacklisted_by"), // 拉黑操作人
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

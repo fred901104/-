@@ -354,20 +354,165 @@ export const appRouter = router({
   
   // Users Management
   userManagement: router({
-    list: protectedProcedure.query(async () => {
-      const { getDb } = await import("./db");
-      const db = await getDb();
-      if (!db) return [];
-      const { users } = await import("../drizzle/schema");
-      const { desc } = await import("drizzle-orm");
-      
-      return db.select().from(users).orderBy(desc(users.createdAt));
-    }),
+    list: protectedProcedure
+      .input(z.object({
+        page: z.number().default(1),
+        pageSize: z.number().default(20),
+        search: z.string().optional(),
+        role: z.enum(["all", "admin", "user"]).optional(),
+        isBlacklisted: z.enum(["all", "0", "1"]).optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return { users: [], total: 0 };
+        const { users } = await import("../drizzle/schema");
+        const { desc, like, eq, and, sql } = await import("drizzle-orm");
+        
+        const page = input?.page || 1;
+        const pageSize = input?.pageSize || 20;
+        const offset = (page - 1) * pageSize;
+        
+        // 构建查询条件
+        const conditions = [];
+        if (input?.search) {
+          conditions.push(
+            sql`(${users.name} LIKE ${`%${input.search}%`} OR ${users.email} LIKE ${`%${input.search}%`})`
+          );
+        }
+        if (input?.role && input.role !== "all") {
+          conditions.push(eq(users.role, input.role));
+        }
+        if (input?.isBlacklisted && input.isBlacklisted !== "all") {
+          conditions.push(eq(users.isBlacklisted, parseInt(input.isBlacklisted)));
+        }
+        
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+        
+        // 获取总数
+        const totalResult = await db.select({ count: sql<number>`COUNT(*)` })
+          .from(users)
+          .where(whereClause);
+        const total = totalResult[0]?.count || 0;
+        
+        // 获取分页数据
+        const usersList = await db.select()
+          .from(users)
+          .where(whereClause)
+          .orderBy(desc(users.createdAt))
+          .limit(pageSize)
+          .offset(offset);
+        
+        return { users: usersList, total };
+      }),
     
     pointsHistory: protectedProcedure.input(z.object({ userId: z.number() })).query(async ({ input }) => {
       const db = await import("./db");
       return db.getUserPoints(input.userId);
     }),
+    
+    adjustPoints: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        amount: z.number(),
+        type: z.enum(["genesis", "eco", "trade"]),
+        reason: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const { pointsRecords } = await import("../drizzle/schema");
+        
+        // 创建积分调整记录
+        await db.insert(pointsRecords).values({
+          userId: input.userId,
+          type: input.type,
+          subType: "manual_adjustment",
+          amount: input.amount,
+          description: input.reason,
+          status: "approved",
+          approvedBy: ctx.user!.id,
+          approvedAt: new Date(),
+        });
+        
+        return { success: true };
+      }),
+    
+    blacklist: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        reason: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        await db.update(users)
+          .set({
+            isBlacklisted: 1,
+            blacklistReason: input.reason,
+            blacklistedAt: new Date(),
+            blacklistedBy: ctx.user!.id,
+          })
+          .where(eq(users.id, input.userId));
+        
+        return { success: true };
+      }),
+    
+    unblacklist: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        await db.update(users)
+          .set({
+            isBlacklisted: 0,
+            blacklistReason: null,
+            blacklistedAt: null,
+            blacklistedBy: null,
+          })
+          .where(eq(users.id, input.userId));
+        
+        return { success: true };
+      }),
+    
+    blacklistBatch: protectedProcedure
+      .input(z.object({
+        userIds: z.array(z.number()),
+        reason: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        
+        const { users } = await import("../drizzle/schema");
+        const { inArray } = await import("drizzle-orm");
+        
+        await db.update(users)
+          .set({
+            isBlacklisted: 1,
+            blacklistReason: input.reason,
+            blacklistedAt: new Date(),
+            blacklistedBy: ctx.user!.id,
+          })
+          .where(inArray(users.id, input.userIds));
+        
+        return { success: true, count: input.userIds.length };
+      }),
   }),
   
   // Points Config

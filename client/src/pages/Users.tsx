@@ -1,37 +1,148 @@
 import { trpc } from "@/lib/trpc";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users as UsersIcon, TrendingUp, Award } from "lucide-react";
-import { useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { Users as UsersIcon, TrendingUp, Award, History, Plus, Minus, Ban, CheckCircle, Search } from "lucide-react";
+import { Pagination } from "@/components/Pagination";
+import { toast } from "sonner";
 
 export default function Users() {
-  const { data: users, isLoading } = trpc.userManagement.list.useQuery();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all");
+  const [blacklistFilter, setBlacklistFilter] = useState<"all" | "0" | "1">("all");
+  
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [adjustPointsDialogOpen, setAdjustPointsDialogOpen] = useState(false);
+  const [blacklistDialogOpen, setBlacklistDialogOpen] = useState(false);
+  
+  const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustType, setAdjustType] = useState<"genesis" | "eco" | "trade">("genesis");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [blacklistReason, setBlacklistReason] = useState("");
+
+  const { data, isLoading, refetch } = trpc.userManagement.list.useQuery({
+    page,
+    pageSize,
+    search: search || undefined,
+    role: roleFilter !== "all" ? roleFilter : undefined,
+    isBlacklisted: blacklistFilter !== "all" ? blacklistFilter : undefined,
+  });
+
+  const users = data?.users || [];
+  const total = data?.total || 0;
+  const totalPages = Math.ceil(total / pageSize);
 
   const { data: pointsHistory } = trpc.userManagement.pointsHistory.useQuery(
     { userId: selectedUser?.id || 0 },
-    { enabled: !!selectedUser }
+    { enabled: !!selectedUser && historyDialogOpen }
   );
+
+  const adjustPointsMutation = trpc.userManagement.adjustPoints.useMutation();
+  const blacklistMutation = trpc.userManagement.blacklist.useMutation();
+  const unblacklistMutation = trpc.userManagement.unblacklist.useMutation();
+
+  const handleSearch = () => {
+    setPage(1);
+    refetch();
+  };
+
+  const handleReset = () => {
+    setSearch("");
+    setRoleFilter("all");
+    setBlacklistFilter("all");
+    setPage(1);
+  };
 
   const openHistoryDialog = (user: any) => {
     setSelectedUser(user);
     setHistoryDialogOpen(true);
   };
 
-  const totalUsers = users?.length || 0;
-  const adminCount = users?.filter(u => u.role === "admin").length || 0;
+  const openAdjustPointsDialog = (user: any) => {
+    setSelectedUser(user);
+    setAdjustAmount("");
+    setAdjustType("genesis");
+    setAdjustReason("");
+    setAdjustPointsDialogOpen(true);
+  };
+
+  const openBlacklistDialog = (user: any) => {
+    setSelectedUser(user);
+    setBlacklistReason("");
+    setBlacklistDialogOpen(true);
+  };
+
+  const handleAdjustPoints = async () => {
+    if (!selectedUser || !adjustAmount || !adjustReason) {
+      toast.error("请填写完整信息");
+      return;
+    }
+
+    try {
+      await adjustPointsMutation.mutateAsync({
+        userId: selectedUser.id,
+        amount: parseInt(adjustAmount),
+        type: adjustType,
+        reason: adjustReason,
+      });
+      toast.success("积分调整成功！");
+      setAdjustPointsDialogOpen(false);
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message || "操作失败");
+    }
+  };
+
+  const handleBlacklist = async () => {
+    if (!selectedUser || !blacklistReason) {
+      toast.error("请填写拉黑原因");
+      return;
+    }
+
+    try {
+      await blacklistMutation.mutateAsync({
+        userId: selectedUser.id,
+        reason: blacklistReason,
+      });
+      toast.success("已将用户加入黑名单");
+      setBlacklistDialogOpen(false);
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message || "操作失败");
+    }
+  };
+
+  const handleUnblacklist = async (user: any) => {
+    try {
+      await unblacklistMutation.mutateAsync({ userId: user.id });
+      toast.success("已解除黑名单");
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message || "操作失败");
+    }
+  };
+
+  const totalUsers = total;
+  const adminCount = users.filter(u => u.role === "admin").length;
+  const blacklistedCount = users.filter(u => u.isBlacklisted === 1).length;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">用户管理</h1>
         <p className="text-muted-foreground mt-2">
-          查看用户列表、积分历史和身份标签管理
+          查看用户列表、积分历史、调整积分和黑名单管理
         </p>
       </div>
 
@@ -61,15 +172,72 @@ export default function Users() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">活跃用户</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">黑名单用户</CardTitle>
+            <Ban className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalUsers}</div>
-            <p className="text-xs text-muted-foreground mt-1">近30天活跃</p>
+            <div className="text-2xl font-bold text-red-600">{blacklistedCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">已被拉黑的用户</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Advanced Filter */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label>搜索用户</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="姓名或邮箱"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>角色</Label>
+              <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部</SelectItem>
+                  <SelectItem value="admin">管理员</SelectItem>
+                  <SelectItem value="user">普通用户</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>黑名单状态</Label>
+              <Select value={blacklistFilter} onValueChange={(v: any) => setBlacklistFilter(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部</SelectItem>
+                  <SelectItem value="0">正常用户</SelectItem>
+                  <SelectItem value="1">黑名单</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="opacity-0">操作</Label>
+              <div className="flex gap-2">
+                <Button onClick={handleSearch} className="flex-1">
+                  <Search className="h-4 w-4 mr-2" />
+                  搜索
+                </Button>
+                <Button variant="outline" onClick={handleReset}>
+                  重置
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Users Table */}
       <Card>
@@ -85,44 +253,78 @@ export default function Users() {
               ))}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>姓名</TableHead>
-                  <TableHead>邮箱</TableHead>
-                  <TableHead>登录方式</TableHead>
-                  <TableHead>角色</TableHead>
-                  <TableHead>注册时间</TableHead>
-                  <TableHead>最后登录</TableHead>
-                  <TableHead>操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users?.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">#{user.id}</TableCell>
-                    <TableCell>{user.name || "-"}</TableCell>
-                    <TableCell>{user.email || "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{user.loginMethod || "未知"}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                        {user.role === "admin" ? "管理员" : "用户"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{new Date(user.createdAt).toLocaleDateString("zh-CN")}</TableCell>
-                    <TableCell>{new Date(user.lastSignedIn).toLocaleDateString("zh-CN")}</TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => openHistoryDialog(user)}>
-                        积分历史
-                      </Button>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>姓名</TableHead>
+                    <TableHead>邮箱</TableHead>
+                    <TableHead>登录方式</TableHead>
+                    <TableHead>角色</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>注册时间</TableHead>
+                    <TableHead>操作</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">#{user.id}</TableCell>
+                      <TableCell>{user.name || "-"}</TableCell>
+                      <TableCell>{user.email || "-"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{user.loginMethod || "未知"}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                          {user.role === "admin" ? "管理员" : "用户"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {user.isBlacklisted === 1 ? (
+                          <Badge variant="destructive">黑名单</Badge>
+                        ) : (
+                          <Badge variant="outline">正常</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>{new Date(user.createdAt).toLocaleDateString("zh-CN")}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="outline" onClick={() => openHistoryDialog(user)}>
+                            <History className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => openAdjustPointsDialog(user)}>
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                          {user.isBlacklisted === 1 ? (
+                            <Button size="sm" variant="outline" onClick={() => handleUnblacklist(user)}>
+                              <CheckCircle className="h-3 w-3" />
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => openBlacklistDialog(user)}>
+                              <Ban className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={total}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setPage(1);
+                }}
+              />
+            </>
           )}
         </CardContent>
       </Card>
@@ -227,6 +429,90 @@ export default function Users() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Adjust Points Dialog */}
+      <Dialog open={adjustPointsDialogOpen} onOpenChange={setAdjustPointsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>调整积分 - {selectedUser?.name}</DialogTitle>
+            <DialogDescription>
+              为用户补发或扣除积分，需填写调整原因
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>积分类型</Label>
+              <Select value={adjustType} onValueChange={(v: any) => setAdjustType(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="genesis">P_Genesis</SelectItem>
+                  <SelectItem value="eco">P_Eco</SelectItem>
+                  <SelectItem value="trade">P_Trade</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>调整数量（正数为补发，负数为扣除）</Label>
+              <Input
+                type="number"
+                placeholder="例如：100 或 -50"
+                value={adjustAmount}
+                onChange={(e) => setAdjustAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>调整原因</Label>
+              <Textarea
+                placeholder="请详细说明调整原因..."
+                value={adjustReason}
+                onChange={(e) => setAdjustReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdjustPointsDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleAdjustPoints} disabled={adjustPointsMutation.isPending}>
+              {adjustPointsMutation.isPending ? "处理中..." : "确认调整"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Blacklist Dialog */}
+      <Dialog open={blacklistDialogOpen} onOpenChange={setBlacklistDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>拉黑用户 - {selectedUser?.name}</DialogTitle>
+            <DialogDescription>
+              拉黑后该用户将无法继续产生积分
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>拉黑原因</Label>
+              <Textarea
+                placeholder="请详细说明拉黑原因..."
+                value={blacklistReason}
+                onChange={(e) => setBlacklistReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBlacklistDialogOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleBlacklist} disabled={blacklistMutation.isPending}>
+              {blacklistMutation.isPending ? "处理中..." : "确认拉黑"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
