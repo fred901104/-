@@ -505,14 +505,21 @@ export const appRouter = router({
       if (!db) return [];
       
       const { audienceContributions, users, stageBudgets } = await import("../drizzle/schema");
-      const { eq } = await import("drizzle-orm");
+      const { eq, and } = await import("drizzle-orm");
       
       const stages = await db.select().from(stageBudgets).orderBy(stageBudgets.id);
       const currentStage = stages.find(s => s.status === 'active');
       
+      // 构建where条件
+      const whereConditions = [];
+      if (input?.stageId) {
+        whereConditions.push(eq(audienceContributions.stageId, input.stageId));
+      }
+      
       // 获取观众贡献数据
       const audienceRecords = await db.select({
         userId: audienceContributions.userId,
+        stageId: audienceContributions.stageId,
         tipScore: audienceContributions.tipScore,
         watchScore: audienceContributions.watchScore,
         chatScore: audienceContributions.chatScore,
@@ -521,7 +528,8 @@ export const appRouter = router({
         userName: users.name,
         userOpenId: users.openId,
       }).from(audienceContributions)
-        .leftJoin(users, eq(audienceContributions.userId, users.id));
+        .leftJoin(users, eq(audienceContributions.userId, users.id))
+        .where(whereConditions.length > 0 ? and(...whereConditions) : undefined);
       
       const userPointsMap = new Map<number, {
         userId: number;

@@ -327,6 +327,7 @@ export type InsertWeeklyConfig = typeof weeklyConfigs.$inferInsert;
 export const audienceContributions = mysqlTable("audience_contributions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("user_id").notNull(),
+  stageId: int("stage_id"), // 所属阶段ID
   date: timestamp("date").notNull(),
   // 打赏相关
   tipAmount: varchar("tip_amount", { length: 32 }).default("0"), // 打赏金额

@@ -1,0 +1,1 @@
+ALTER TABLE `audience_contributions` ADD `stage_id` int;

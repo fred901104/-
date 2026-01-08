@@ -1183,3 +1183,32 @@
 - ⚠️ Streams页面的观众积分表无法按阶段筛选，因为audienceContributions表没有streamId字段，无法关联live_streams表获取stageId
 - 如需解决观众积分表的阶段筛选问题，需要在audienceContributions表中添加stageId字段
 
+
+
+---
+
+## ✅ 2026-01-08 为观众贡献积分表添加阶段筛选支持
+
+### 问题描述
+- [x] audienceContributions表缺少stageId字段，无法按阶段筛选观众积分数据
+- [x] 当前streams.audienceUserPoints API无法根据阶段过滤数据
+
+### 实现步骤
+- [x] 修改drizzle/schema.ts，为audienceContributions表添加stageId字段
+- [x] 运行pnpm db:push推送schema变更
+- [x] 创建数据迁移脚本，从相关表（如live_streams）填充历史数据的stageId
+- [x] 修改server/routers.ts中的streams.audienceUserPoints API，支持stageId筛选
+- [x] 测试Streams页面观众积分表的阶段筛选功能
+
+### 预期结果
+- [x] audienceContributions表包含stageId字段
+- [x] 历史数据的stageId已正确填充（或无历史数据）
+- [x] Streams页面的观众积分表支持阶段筛选
+- [x] 选择不同阶段时，观众积分表显示对应阶段的数据
+
+### 实现总结
+- ✅ 为audienceContributions表添加了stageId字段
+- ✅ 创建了数据迁移脚本（scripts/migrate-audience-stage-id.mjs）
+- ✅ 修改了streams.audienceUserPoints API，支持stageId筛选
+- ✅ 测试验证：选择S1阶段后，观众积分表正确显示该阶段的数据
+- ✅ 现在三个池子的所有Tab都支持全局阶段筛选功能
