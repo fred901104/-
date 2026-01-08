@@ -14,6 +14,7 @@ import { exportToExcel, formatDateTime } from "@/lib/exportToExcel";
 import { useState, useMemo, useEffect } from "react";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead, SortDirection } from "@/components/SortableTableHead";
+import { UserPointsTable } from "@/components/UserPointsTable";
 import { toast } from "sonner";
 
 const priorityLabels = {
@@ -46,6 +47,9 @@ export default function Tickets() {
   const { data: tickets, isLoading, refetch } = trpc.tickets.list.useQuery(
     selectedStageId ? { stageId: selectedStageId } : undefined
   );
+  
+  // 获取用户积分统计
+  const { data: userPoints, isLoading: isLoadingUserPoints } = trpc.tickets.userPoints.useQuery();
   const reviewMutation = trpc.tickets.review.useMutation();
   
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -652,6 +656,13 @@ export default function Tickets() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* 用户积分获取表 */}
+      <UserPointsTable 
+        data={userPoints || []} 
+        poolName="P_Genesis 创世池" 
+        isLoading={isLoadingUserPoints}
+      />
     </div>
   );
 }

@@ -250,6 +250,82 @@ export const appRouter = router({
       
       return { success: true };
     }),
+    
+    // 获取用户积分统计（P_Genesis）
+    userPoints: protectedProcedure.query(async () => {
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) return [];
+      
+      const { pointsRecords, users, stageBudgets, tickets } = await import("../drizzle/schema");
+      const { sql, eq } = await import("drizzle-orm");
+      
+      // 获取所有阶段
+      const stages = await db.select().from(stageBudgets).orderBy(stageBudgets.id);
+      
+      // 获取当前Active阶段
+      const currentStage = stages.find(s => s.status === 'active');
+      
+      // 获取所有P_Genesis类型的积分记录，通过tickets表关联获取stageId
+      const genesisRecords = await db.select({
+        userId: pointsRecords.userId,
+        stageId: tickets.stageId,
+        amount: pointsRecords.amount,
+        userName: users.name,
+        userOpenId: users.openId,
+      }).from(pointsRecords)
+        .leftJoin(users, eq(pointsRecords.userId, users.id))
+        .leftJoin(tickets, eq(pointsRecords.relatedId, tickets.id))
+        .where(eq(pointsRecords.type, 'genesis'));
+      
+      // 按用户聚合数据
+      const userPointsMap = new Map<number, {
+        userId: number;
+        userName: string;
+        userOpenId: string;
+        currentPeriodPoints: number;
+        totalPoints: number;
+        stagePoints: Record<string, number>;
+      }>();
+      
+      for (const record of genesisRecords) {
+        if (!record.userId) continue;
+        
+        if (!userPointsMap.has(record.userId)) {
+          userPointsMap.set(record.userId, {
+            userId: record.userId,
+            userName: record.userName || 'Unknown',
+            userOpenId: record.userOpenId || '',
+            currentPeriodPoints: 0,
+            totalPoints: 0,
+            stagePoints: {},
+          });
+        }
+        
+        const userPoints = userPointsMap.get(record.userId)!;
+        userPoints.totalPoints += record.amount;
+        
+        // 如果是当前阶段，统计到currentPeriodPoints
+        if (currentStage && record.stageId === currentStage.id) {
+          userPoints.currentPeriodPoints += record.amount;
+        }
+        
+        // 统计各阶段积分
+        if (record.stageId) {
+          const stage = stages.find(s => s.id === record.stageId);
+          if (stage) {
+            const stageName = stage.stageName;
+            if (!userPoints.stagePoints[stageName]) {
+              userPoints.stagePoints[stageName] = 0;
+            }
+            userPoints.stagePoints[stageName] += record.amount;
+          }
+        }
+      }
+      
+      // 转换为数组并按当前周期积分排序
+      return Array.from(userPointsMap.values()).sort((a, b) => b.currentPeriodPoints - a.currentPeriodPoints);
+    }),
   }),
   
   // Live Streams (P_Eco)
@@ -289,6 +365,74 @@ export const appRouter = router({
     getById: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
       const db = await import("./db");
       return db.getStreamById(input.id);
+    }),
+    
+    // 获取用户积分统计（P_Eco）
+    userPoints: protectedProcedure.query(async () => {
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) return [];
+      
+      const { pointsRecords, users, stageBudgets, liveStreams } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      
+      const stages = await db.select().from(stageBudgets).orderBy(stageBudgets.id);
+      const currentStage = stages.find(s => s.status === 'active');
+      
+      const ecoRecords = await db.select({
+        userId: pointsRecords.userId,
+        stageId: liveStreams.stageId,
+        amount: pointsRecords.amount,
+        userName: users.name,
+        userOpenId: users.openId,
+      }).from(pointsRecords)
+        .leftJoin(users, eq(pointsRecords.userId, users.id))
+        .leftJoin(liveStreams, eq(pointsRecords.relatedId, liveStreams.id))
+        .where(eq(pointsRecords.type, 'eco'));
+      
+      const userPointsMap = new Map<number, {
+        userId: number;
+        userName: string;
+        userOpenId: string;
+        currentPeriodPoints: number;
+        totalPoints: number;
+        stagePoints: Record<string, number>;
+      }>();
+      
+      for (const record of ecoRecords) {
+        if (!record.userId) continue;
+        
+        if (!userPointsMap.has(record.userId)) {
+          userPointsMap.set(record.userId, {
+            userId: record.userId,
+            userName: record.userName || 'Unknown',
+            userOpenId: record.userOpenId || '',
+            currentPeriodPoints: 0,
+            totalPoints: 0,
+            stagePoints: {},
+          });
+        }
+        
+        const userPoints = userPointsMap.get(record.userId)!;
+        userPoints.totalPoints += record.amount;
+        
+        if (currentStage && record.stageId === currentStage.id) {
+          userPoints.currentPeriodPoints += record.amount;
+        }
+        
+        if (record.stageId) {
+          const stage = stages.find(s => s.id === record.stageId);
+          if (stage) {
+            const stageName = stage.stageName;
+            if (!userPoints.stagePoints[stageName]) {
+              userPoints.stagePoints[stageName] = 0;
+            }
+            userPoints.stagePoints[stageName] += record.amount;
+          }
+        }
+      }
+      
+      return Array.from(userPointsMap.values()).sort((a, b) => b.currentPeriodPoints - a.currentPeriodPoints);
     }),
   }),
   
@@ -353,6 +497,74 @@ export const appRouter = router({
       });
       
       return { success: true };
+    }),
+    
+    // 获取用户积分统计（P_Trade）
+    userPoints: protectedProcedure.query(async () => {
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) return [];
+      
+      const { pointsRecords, users, stageBudgets, tradeRecords } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      
+      const stages = await db.select().from(stageBudgets).orderBy(stageBudgets.id);
+      const currentStage = stages.find(s => s.status === 'active');
+      
+      const tradePointsRecords = await db.select({
+        userId: pointsRecords.userId,
+        stageId: tradeRecords.stageId,
+        amount: pointsRecords.amount,
+        userName: users.name,
+        userOpenId: users.openId,
+      }).from(pointsRecords)
+        .leftJoin(users, eq(pointsRecords.userId, users.id))
+        .leftJoin(tradeRecords, eq(pointsRecords.relatedId, tradeRecords.id))
+        .where(eq(pointsRecords.type, 'trade'));
+      
+      const userPointsMap = new Map<number, {
+        userId: number;
+        userName: string;
+        userOpenId: string;
+        currentPeriodPoints: number;
+        totalPoints: number;
+        stagePoints: Record<string, number>;
+      }>();
+      
+      for (const record of tradePointsRecords) {
+        if (!record.userId) continue;
+        
+        if (!userPointsMap.has(record.userId)) {
+          userPointsMap.set(record.userId, {
+            userId: record.userId,
+            userName: record.userName || 'Unknown',
+            userOpenId: record.userOpenId || '',
+            currentPeriodPoints: 0,
+            totalPoints: 0,
+            stagePoints: {},
+          });
+        }
+        
+        const userPoints = userPointsMap.get(record.userId)!;
+        userPoints.totalPoints += record.amount;
+        
+        if (currentStage && record.stageId === currentStage.id) {
+          userPoints.currentPeriodPoints += record.amount;
+        }
+        
+        if (record.stageId) {
+          const stage = stages.find(s => s.id === record.stageId);
+          if (stage) {
+            const stageName = stage.stageName;
+            if (!userPoints.stagePoints[stageName]) {
+              userPoints.stagePoints[stageName] = 0;
+            }
+            userPoints.stagePoints[stageName] += record.amount;
+          }
+        }
+      }
+      
+      return Array.from(userPointsMap.values()).sort((a, b) => b.currentPeriodPoints - a.currentPeriodPoints);
     }),
   }),
   
