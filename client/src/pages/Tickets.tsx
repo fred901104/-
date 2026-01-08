@@ -720,20 +720,18 @@ export default function Tickets() {
         onOpenChange={setShowExportPreview}
         filterSummary={(() => {
           const selectedStage = stages?.find(s => s.id === selectedStageId);
+          const summary: Record<string, string> = {
+            '导出时间': formatDateTime(new Date()),
+            '阶段': selectedStage ? selectedStage.stageName : '全部阶段',
+          };
+          
           if (exportType === 'tickets') {
-            return {
-              '导出时间': formatDateTime(new Date()),
-              '阶段': selectedStage ? selectedStage.stageName : '全部阶段',
-              '类型': filterType === 'all' ? '全部类型' : (typeLabels[filterType as keyof typeof typeLabels]?.label || filterType),
-              '状态': filterStatus === 'all' ? '全部状态' : (statusLabels[filterStatus as keyof typeof statusLabels]?.label || filterStatus),
-              '搜索关键词': searchQuery || '无',
-            };
-          } else {
-            return {
-              '导出时间': formatDateTime(new Date()),
-              '阶段': selectedStage ? selectedStage.stageName : '全部阶段',
-            };
+            summary['类型'] = filterType === 'all' ? '全部类型' : (typeLabels[filterType as keyof typeof typeLabels]?.label || filterType);
+            summary['状态'] = filterStatus === 'all' ? '全部状态' : (statusLabels[filterStatus as keyof typeof statusLabels]?.label || filterStatus);
+            summary['搜索关键词'] = searchQuery || '无';
           }
+          
+          return summary;
         })()}
         totalRecords={exportType === 'tickets' ? sortedTickets.length : (userPoints?.length || 0)}
         availableColumns={exportType === 'tickets' ? [

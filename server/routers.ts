@@ -1494,7 +1494,7 @@ export const appRouter = router({
       
       const { exportHistories } = await import("../drizzle/schema");
       
-      const record = await db.insert(exportHistories).values({
+      await db.insert(exportHistories).values({
         userId: ctx.user.id,
         userName: ctx.user.name || ctx.user.nickname || '未知用户',
         exportType: input.exportType,
@@ -1507,7 +1507,7 @@ export const appRouter = router({
         fileSize: input.fileSize,
       });
       
-      return { success: true, id: record.insertId };
+      return { success: true };
     }),
     
     // 查询导出历史记录列表
