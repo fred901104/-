@@ -33,51 +33,54 @@ export function exportToExcel<T extends Record<string, any>>(
   sheetName: string = 'Sheet1',
   filterSummary?: FilterSummary
 ) {
-  // 如果有筛选条件摘要，在数据前面添加空行和摘要信息
-  let worksheetData: any[] = [];
+  // 创建工作簿
+  const workbook = XLSX.utils.book_new();
   
-  if (filterSummary) {
-    // 添加标题行
-    worksheetData.push({ '筛选条件摘要': '' });
+  if (filterSummary && Object.keys(filterSummary).length > 0) {
+    // 构建筛选条件摘要数据
+    const summaryData: any[][] = [];
+    summaryData.push(['━━━ 筛选条件摘要 ━━━']);
     
-    // 添加筛选条件
     if (filterSummary.exportTime) {
-      worksheetData.push({ '筛选条件摘要': '导出时间', '值': filterSummary.exportTime });
+      summaryData.push(['导出时间:', filterSummary.exportTime]);
     }
     if (filterSummary.stage) {
-      worksheetData.push({ '筛选条件摘要': '阶段筛选', '值': filterSummary.stage });
+      summaryData.push(['阶段筛选:', filterSummary.stage]);
     }
     if (filterSummary.startDate || filterSummary.endDate) {
       const dateRange = `${filterSummary.startDate || '无'} 至 ${filterSummary.endDate || '无'}`;
-      worksheetData.push({ '筛选条件摘要': '日期范围', '值': dateRange });
+      summaryData.push(['日期范围:', dateRange]);
     }
     if (filterSummary.status) {
-      worksheetData.push({ '筛选条件摘要': '状态筛选', '值': filterSummary.status });
+      summaryData.push(['状态筛选:', filterSummary.status]);
     }
     if (filterSummary.type) {
-      worksheetData.push({ '筛选条件摘要': '类型筛选', '值': filterSummary.type });
+      summaryData.push(['类型筛选:', filterSummary.type]);
     }
     
     // 添加其他自定义筛选条件
     Object.keys(filterSummary).forEach(key => {
       if (!['exportTime', 'stage', 'startDate', 'endDate', 'status', 'type'].includes(key) && filterSummary[key]) {
-        worksheetData.push({ '筛选条件摘要': key, '值': filterSummary[key] });
+        summaryData.push([key + ':', filterSummary[key]]);
       }
     });
     
-    // 添加空行分隔
-    worksheetData.push({});
-    worksheetData.push({ '筛选条件摘要': '数据列表', '值': `共 ${data.length} 条记录` });
-    worksheetData.push({});
+    summaryData.push([]);
+    summaryData.push([`━━━ 数据列表（共 ${data.length} 条记录） ━━━`]);
+    summaryData.push([]);
+    
+    // 创建工作表，先添加筛选条件摘要
+    const worksheet = XLSX.utils.aoa_to_sheet(summaryData);
+    
+    // 然后添加数据表格
+    XLSX.utils.sheet_add_json(worksheet, data, { origin: -1, skipHeader: false });
+    
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  } else {
+    // 没有筛选条件摘要，直接导出数据
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   }
-  
-  // 添加实际数据
-  worksheetData = worksheetData.concat(data);
-
-  // 创建工作簿
-  const worksheet = XLSX.utils.json_to_sheet(worksheetData, { skipHeader: false });
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
   // 生成Excel文件并触发下载
   const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
