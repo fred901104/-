@@ -16,6 +16,12 @@ import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 
 export default function Streams() {
+  // 阶段筛选状态
+  const [selectedStageId, setSelectedStageId] = useState<number | undefined>(undefined);
+  
+  // 获取阶段列表
+  const { data: stages } = trpc.stageBudget.list.useQuery();
+  
   const [filterValues, setFilterValues] = useState<FilterValues>({ search: "" });
   const [selectedStream, setSelectedStream] = useState<number | null>(null);
   const [ccuDialogOpen, setCcuDialogOpen] = useState(false);
@@ -64,7 +70,10 @@ export default function Streams() {
     }
   };
 
-  const { data: streams, isLoading } = trpc.streams.list.useQuery();
+  // 根据选中的阶段获取数据
+  const { data: streams, isLoading } = trpc.streams.list.useQuery(
+    selectedStageId ? { stageId: selectedStageId } : undefined
+  );
 
   // 导出主播贡献功能
   const handleExportStreams = () => {

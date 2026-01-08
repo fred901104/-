@@ -36,7 +36,16 @@ const statusLabels = {
 };
 
 export default function Tickets() {
-  const { data: tickets, isLoading, refetch } = trpc.tickets.list.useQuery();
+  // 阶段筛选状态
+  const [selectedStageId, setSelectedStageId] = useState<number | undefined>(undefined);
+  
+  // 获取阶段列表
+  const { data: stages } = trpc.stageBudget.list.useQuery();
+  
+  // 根据选中的阶段获取数据
+  const { data: tickets, isLoading, refetch } = trpc.tickets.list.useQuery(
+    selectedStageId ? { stageId: selectedStageId } : undefined
+  );
   const reviewMutation = trpc.tickets.review.useMutation();
   
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -267,7 +276,27 @@ export default function Tickets() {
           <CardTitle>筛选和搜索</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            <div className="space-y-2">
+              <Label>阶段筛选</Label>
+              <Select 
+                value={selectedStageId?.toString() || "all"} 
+                onValueChange={(value) => setSelectedStageId(value === "all" ? undefined : parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="全部阶段" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部阶段</SelectItem>
+                  {stages?.map((stage) => (
+                    <SelectItem key={stage.id} value={stage.id.toString()}>
+                      {stage.stageName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             <div className="space-y-2">
               <Label>工单类型</Label>
               <Select value={filterType} onValueChange={setFilterType}>
@@ -382,6 +411,7 @@ export default function Tickets() {
                   <TableRow>
                     <TableHead className="w-[60px]">序号</TableHead>
                     <TableHead>创建时间</TableHead>
+                    <TableHead>阶段</TableHead>
                     <TableHead>订单号</TableHead>
                     <TableHead>UID</TableHead>
                   <TableHead>内容</TableHead>
@@ -412,6 +442,7 @@ export default function Tickets() {
                   >
                     提交时间
                   </SortableTableHead>
+                  <TableHead>操作人</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -420,6 +451,7 @@ export default function Tickets() {
                   const globalIndex = sortedTickets.length - ((currentPage - 1) * pageSize + index);
                   const ticket = item.ticket;
                   const user = item.user;
+                  const stage = item.stage;
                   const TypeIcon = typeLabels[ticket.type as keyof typeof typeLabels]?.icon;
                   const StatusIcon = statusLabels[ticket.status as keyof typeof statusLabels]?.icon;
 
@@ -436,6 +468,13 @@ export default function Tickets() {
                           second: '2-digit',
                           hour12: false
                         })}
+                      </TableCell>
+                      <TableCell>
+                        {stage ? (
+                          <Badge variant="outline">{stage.stageName}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">未分配</span>
+                        )}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {(() => {
@@ -471,6 +510,28 @@ export default function Tickets() {
                       </TableCell>
                       <TableCell>{ticket.finalScore || 0}</TableCell>
                       <TableCell>{new Date(ticket.createdAt).toLocaleDateString("zh-CN")}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 text-xs">
+                          {ticket.createdBy && (
+                            <div>
+                              <span className="text-muted-foreground">创建:</span> 用户ID: {ticket.createdBy}
+                            </div>
+                          )}
+                          {ticket.reviewedBy && (
+                            <div>
+                              <span className="text-muted-foreground">审核:</span> 用户ID: {ticket.reviewedBy}
+                            </div>
+                          )}
+                          {ticket.modifiedBy && (
+                            <div>
+                              <span className="text-muted-foreground">修改:</span> 用户ID: {ticket.modifiedBy}
+                            </div>
+                          )}
+                          {!ticket.createdBy && !ticket.reviewedBy && !ticket.modifiedBy && (
+                            <span className="text-muted-foreground">无</span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           {ticket.status === "pending" && (
