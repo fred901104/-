@@ -1025,11 +1025,11 @@
 - [x] Tickets页面：添加阶段列和操作人列
 - [x] Tickets页面：添加阶段筛选器
 - [x] Tickets页面：实现Tab切换功能
-- [ ] Streams页面：添加阶段列和操作人列
-- [ ] Streams页面：添加阶段筛选器
-- [ ] Streams页面：实现Tab切换功能
-- [ ] Trades页面：添加阶段列和操作人列
-- [ ] Trades页面：添加阶段筛选器
-- [ ] Trades页面：实现Tab切换功能
+- [x] Streams页面：添加阶段列和操作人列
+- [x] Streams页面：添加阶段筛选器
+- [x] Streams页面：实现阶段筛选功能
+- [x] Trades页面：添加阶段列和操作人列
+- [x] Trades页面：添加阶段筛选器
+- [x] Trades页面：实现阶段筛选功能
 - [ ] 测试：验证三个页面的筛选和切换功能
 - [ ] 保存检查点

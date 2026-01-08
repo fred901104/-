@@ -314,6 +314,23 @@ export default function Streams() {
         </Button>
       </div>
 
+      {/* 阶段筛选器 */}
+      <div className="flex items-center gap-4 mb-4">
+        <label className="text-sm font-medium">阶段筛选：</label>
+        <select
+          className="border rounded-md px-3 py-2 text-sm"
+          value={selectedStageId || ""}
+          onChange={(e) => setSelectedStageId(e.target.value ? Number(e.target.value) : undefined)}
+        >
+          <option value="">全部阶段</option>
+          {stages?.map((stage) => (
+            <option key={stage.id} value={stage.id}>
+              {stage.stageName}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Filter Bar */}
       <FilterBar
         config={filterConfig}
@@ -364,6 +381,7 @@ export default function Streams() {
                         >
                           开播时间
                         </SortableTableHead>
+                        <TableHead>阶段</TableHead>
                         <TableHead>订单号</TableHead>
                         <TableHead>主播UID</TableHead>
                         <TableHead>主播名称</TableHead>
@@ -395,12 +413,14 @@ export default function Streams() {
                           P_Eco得分
                         </SortableTableHead>
                         <TableHead>状态</TableHead>
+                        <TableHead>操作人</TableHead>
                         <TableHead>操作</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedStreams?.map((stream, index) => {
                         const globalIndex = (streams?.length || 0) - ((currentPage - 1) * pageSize + index);
+                        const stage = stream.stage;
                         return (
                         <TableRow key={stream.stream.id}>
                           <TableCell className="text-center text-muted-foreground">{globalIndex}</TableCell>
@@ -414,6 +434,13 @@ export default function Streams() {
                               second: '2-digit',
                               hour12: false
                             })}
+                          </TableCell>
+                          <TableCell>
+                            {stage ? (
+                              <Badge variant="outline">{stage.stageName}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">未分配</span>
+                            )}
                           </TableCell>
                           <TableCell className="font-mono text-sm">
                             {(() => {
@@ -466,6 +493,28 @@ export default function Streams() {
                             ) : (
                               <Badge variant="default">正常</Badge>
                             )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1 text-xs">
+                              {stream.stream.createdBy && (
+                                <div>
+                                  <span className="text-muted-foreground">创建:</span> 用户ID: {stream.stream.createdBy}
+                                </div>
+                              )}
+                              {stream.stream.reviewedBy && (
+                                <div>
+                                  <span className="text-muted-foreground">审核:</span> 用户ID: {stream.stream.reviewedBy}
+                                </div>
+                              )}
+                              {stream.stream.modifiedBy && (
+                                <div>
+                                  <span className="text-muted-foreground">修改:</span> 用户ID: {stream.stream.modifiedBy}
+                                </div>
+                              )}
+                              {!stream.stream.createdBy && !stream.stream.reviewedBy && !stream.stream.modifiedBy && (
+                                <span className="text-muted-foreground">无</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">

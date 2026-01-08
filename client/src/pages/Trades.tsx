@@ -14,6 +14,12 @@ import { exportToExcel, formatDateTime } from "@/lib/exportToExcel";
 import { toast } from "sonner";
 
 export default function Trades() {
+  // 阶段筛选状态
+  const [selectedStageId, setSelectedStageId] = useState<number | undefined>(undefined);
+  
+  // 获取阶段列表
+  const { data: stages } = trpc.stageBudget.list.useQuery();
+  
   const [filterValues, setFilterValues] = useState<FilterValues>({ search: "" });
   const [freezeDialogOpen, setFreezeDialogOpen] = useState(false);
   const [frozenDetailsOpen, setFrozenDetailsOpen] = useState(false);
@@ -68,7 +74,10 @@ export default function Trades() {
     }
   };
 
-  const { data: trades, isLoading } = trpc.trades.list.useQuery();
+  // 根据选中的阶段获取数据
+  const { data: trades, isLoading } = trpc.trades.list.useQuery(
+    selectedStageId ? { stageId: selectedStageId } : undefined
+  );
   const freezeMutation = trpc.trades.freeze.useMutation();
 
   const filterConfig: FilterConfig = {
@@ -216,6 +225,23 @@ export default function Trades() {
         </Button>
       </div>
 
+      {/* 阶段筛选器 */}
+      <div className="flex items-center gap-4 mb-4">
+        <label className="text-sm font-medium">阶段筛选：</label>
+        <select
+          className="border rounded-md px-3 py-2 text-sm"
+          value={selectedStageId || ""}
+          onChange={(e) => setSelectedStageId(e.target.value ? Number(e.target.value) : undefined)}
+        >
+          <option value="">全部阶段</option>
+          {stages?.map((stage) => (
+            <option key={stage.id} value={stage.id}>
+              {stage.stageName}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Filter Bar */}
       <FilterBar
         config={filterConfig}
@@ -311,6 +337,7 @@ export default function Trades() {
                     >
                       交易时间
                     </SortableTableHead>
+                    <TableHead>阶段</TableHead>
                     <TableHead>订单号</TableHead>
                     <TableHead>用户UID</TableHead>
                     <TableHead>交易类型</TableHead>
@@ -335,12 +362,14 @@ export default function Trades() {
                     <TableHead>有效开单</TableHead>
                     <TableHead>计算积分</TableHead>
                     <TableHead>状态</TableHead>
+                    <TableHead>操作人</TableHead>
                     <TableHead>操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedTrades?.map((trade, index) => {
                     const globalIndex = (trades?.length || 0) - ((currentPage - 1) * pageSize + index);
+                    const stage = trade.stage;
                     const isSuspicious = Math.random() > 0.8; // 模拟可疑检测
                     const isFrozen = Math.random() > 0.9; // 模拟冻结状态
                     
@@ -357,6 +386,13 @@ export default function Trades() {
                             second: '2-digit',
                             hour12: false
                           })}
+                        </TableCell>
+                        <TableCell>
+                          {stage ? (
+                            <Badge variant="outline">{stage.stageName}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">未分配</span>
+                          )}
                         </TableCell>
                         <TableCell className="font-mono text-sm">
                           {(() => {
@@ -420,6 +456,28 @@ export default function Trades() {
                               正常
                             </Badge>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1 text-xs">
+                            {trade.trade.createdBy && (
+                              <div>
+                                <span className="text-muted-foreground">创建:</span> 用户ID: {trade.trade.createdBy}
+                              </div>
+                            )}
+                            {trade.trade.reviewedBy && (
+                              <div>
+                                <span className="text-muted-foreground">审核:</span> 用户ID: {trade.trade.reviewedBy}
+                              </div>
+                            )}
+                            {trade.trade.modifiedBy && (
+                              <div>
+                                <span className="text-muted-foreground">修改:</span> 用户ID: {trade.trade.modifiedBy}
+                              </div>
+                            )}
+                            {!trade.trade.createdBy && !trade.trade.reviewedBy && !trade.trade.modifiedBy && (
+                              <span className="text-muted-foreground">无</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
