@@ -16,6 +16,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead, SortDirection } from "@/components/SortableTableHead";
 import { UserPointsTable } from "@/components/UserPointsTable";
+import { ExportPreviewDialog } from "@/components/ExportPreviewDialog";
 import { toast } from "sonner";
 
 const priorityLabels = {
@@ -94,9 +95,21 @@ export default function Tickets() {
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  
+  // 导出预览对话框状态
+  const [showExportPreview, setShowExportPreview] = useState(false);
+  const [exportType, setExportType] = useState<'tickets' | 'userPoints'>('tickets');
+  
+  // 导出历史记录mutation
+  const createExportHistory = trpc.exportHistory.create.useMutation();
 
   // 导出工单表功能
   const handleExportTickets = () => {
+    setExportType('tickets');
+    setShowExportPreview(true);
+  };
+  
+  const confirmExportTickets = (selectedColumns?: string[]) => {
     const exportData = sortedTickets.map((item, index) => {
       const date = new Date(item.ticket.createdAt);
       const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
@@ -128,7 +141,20 @@ export default function Tickets() {
       '搜索关键词': searchQuery || '无',
     };
     
-    exportToExcel(exportData, `P_Genesis工单列表_${new Date().toLocaleDateString()}`, 'P_Genesis工单列表', filterSummary);
+    const filename = `P_Genesis工单列表_${new Date().toLocaleDateString()}.xlsx`;
+    exportToExcel(exportData, filename.replace('.xlsx', ''), 'P_Genesis工单列表', filterSummary, selectedColumns);
+    
+    // 记录导出历史
+    createExportHistory.mutate({
+      exportType: 'tickets',
+      exportTable: 'P_Genesis工单列表',
+      recordCount: exportData.length,
+      columnCount: selectedColumns ? selectedColumns.length : Object.keys(exportData[0] || {}).length,
+      filterConditions: JSON.stringify(filterSummary),
+      selectedColumns: selectedColumns ? JSON.stringify(selectedColumns) : undefined,
+      filename,
+    });
+    
     toast.success("工单列表已导出");
   };
 
@@ -687,6 +713,41 @@ export default function Tickets() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* 导出预览对话框 */}
+      <ExportPreviewDialog
+        open={showExportPreview}
+        onOpenChange={setShowExportPreview}
+        filterSummary={(() => {
+          const selectedStage = stages?.find(s => s.id === selectedStageId);
+          if (exportType === 'tickets') {
+            return {
+              '导出时间': formatDateTime(new Date()),
+              '阶段': selectedStage ? selectedStage.stageName : '全部阶段',
+              '类型': filterType === 'all' ? '全部类型' : (typeLabels[filterType as keyof typeof typeLabels]?.label || filterType),
+              '状态': filterStatus === 'all' ? '全部状态' : (statusLabels[filterStatus as keyof typeof statusLabels]?.label || filterStatus),
+              '搜索关键词': searchQuery || '无',
+            };
+          } else {
+            return {
+              '导出时间': formatDateTime(new Date()),
+              '阶段': selectedStage ? selectedStage.stageName : '全部阶段',
+            };
+          }
+        })()}
+        totalRecords={exportType === 'tickets' ? sortedTickets.length : (userPoints?.length || 0)}
+        availableColumns={exportType === 'tickets' ? [
+          '序号', '创建时间', '订单号', 'UID', '用户名', '内容', '工单号', 'BUG等级', '状态', '释放积分', '阶段'
+        ] : [
+          '序号', 'UID', '用户名', 'Bug反馈数', '建议数', '总积分'
+        ]}
+        onConfirm={(selectedColumns) => {
+          if (exportType === 'tickets') {
+            confirmExportTickets(selectedColumns);
+          }
+          setShowExportPreview(false);
+        }}
+      />
     </div>
   );
 }

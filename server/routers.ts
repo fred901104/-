@@ -1488,10 +1488,13 @@ export const appRouter = router({
       filename: z.string(),
       fileSize: z.number().optional(),
     })).mutation(async ({ input, ctx }) => {
-      const { db: dbModule } = await import("./db");
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      
       const { exportHistories } = await import("../drizzle/schema");
       
-      const record = await dbModule.db.insert(exportHistories).values({
+      const record = await db.insert(exportHistories).values({
         userId: ctx.user.id,
         userName: ctx.user.name || ctx.user.nickname || '未知用户',
         exportType: input.exportType,
@@ -1515,9 +1518,12 @@ export const appRouter = router({
       startDate: z.string().optional(),
       endDate: z.string().optional(),
     })).query(async ({ input }) => {
-      const { db: dbModule } = await import("./db");
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      
       const { exportHistories } = await import("../drizzle/schema");
-      const { and, eq, gte, lte, desc } = await import("drizzle-orm");
+      const { and, eq, gte, lte, desc, sql } = await import("drizzle-orm");
       
       const conditions = [];
       
@@ -1533,7 +1539,7 @@ export const appRouter = router({
       
       const offset = (input.page - 1) * input.pageSize;
       
-      const records = await dbModule.db
+      const records = await db
         .select()
         .from(exportHistories)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -1541,8 +1547,8 @@ export const appRouter = router({
         .limit(input.pageSize)
         .offset(offset);
       
-      const [{ count }] = await dbModule.db
-        .select({ count: dbModule.sql<number>`count(*)` })
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)` })
         .from(exportHistories)
         .where(conditions.length > 0 ? and(...conditions) : undefined);
       
@@ -1556,11 +1562,14 @@ export const appRouter = router({
     
     // 获取导出统计信息
     stats: protectedProcedure.query(async () => {
-      const { db: dbModule } = await import("./db");
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) throw new Error('Database not available');
+      
       const { exportHistories } = await import("../drizzle/schema");
       const { sql } = await import("drizzle-orm");
       
-      const [stats] = await dbModule.db
+      const [stats] = await db
         .select({
           totalExports: sql<number>`count(*)`,
           totalRecords: sql<number>`sum(${exportHistories.recordCount})`,
