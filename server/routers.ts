@@ -161,20 +161,32 @@ export const appRouter = router({
   
   // Tickets (P_Genesis)
   tickets: router({
-    list: protectedProcedure.query(async () => {
-      const { getDb } = await import("./db");
-      const db = await getDb();
-      if (!db) return [];
-      const { tickets, users } = await import("../drizzle/schema");
-      const { desc, eq } = await import("drizzle-orm");
-      
-      return db.select({
-        ticket: tickets,
-        user: users,
-      }).from(tickets)
-        .leftJoin(users, eq(tickets.userId, users.id))
-        .orderBy(desc(tickets.createdAt));
-    }),
+    list: protectedProcedure
+      .input(z.object({
+        stageId: z.number().optional(), // 阶段筛选
+      }).optional())
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return [];
+        const { tickets, users, stageBudgets } = await import("../drizzle/schema");
+        const { desc, eq, and } = await import("drizzle-orm");
+        
+        const conditions = [];
+        if (input?.stageId) {
+          conditions.push(eq(tickets.stageId, input.stageId));
+        }
+        
+        return db.select({
+          ticket: tickets,
+          user: users,
+          stage: stageBudgets,
+        }).from(tickets)
+          .leftJoin(users, eq(tickets.userId, users.id))
+          .leftJoin(stageBudgets, eq(tickets.stageId, stageBudgets.id))
+          .where(conditions.length > 0 ? and(...conditions) : undefined)
+          .orderBy(desc(tickets.createdAt));
+      }),
     
     pending: protectedProcedure.query(async () => {
       const db = await import("./db");
@@ -242,20 +254,32 @@ export const appRouter = router({
   
   // Live Streams (P_Eco)
   streams: router({
-    list: protectedProcedure.query(async () => {
-      const { getDb } = await import("./db");
-      const db = await getDb();
-      if (!db) return [];
-      const { liveStreams, users } = await import("../drizzle/schema");
-      const { desc, eq } = await import("drizzle-orm");
-      
-      return db.select({
-        stream: liveStreams,
-        streamer: users,
-      }).from(liveStreams)
-        .leftJoin(users, eq(liveStreams.streamerId, users.id))
-        .orderBy(desc(liveStreams.createdAt));
-    }),
+    list: protectedProcedure
+      .input(z.object({
+        stageId: z.number().optional(), // 阶段筛选
+      }).optional())
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return [];
+        const { liveStreams, users, stageBudgets } = await import("../drizzle/schema");
+        const { desc, eq, and } = await import("drizzle-orm");
+        
+        const conditions = [];
+        if (input?.stageId) {
+          conditions.push(eq(liveStreams.stageId, input.stageId));
+        }
+        
+        return db.select({
+          stream: liveStreams,
+          streamer: users,
+          stage: stageBudgets,
+        }).from(liveStreams)
+          .leftJoin(users, eq(liveStreams.streamerId, users.id))
+          .leftJoin(stageBudgets, eq(liveStreams.stageId, stageBudgets.id))
+          .where(conditions.length > 0 ? and(...conditions) : undefined)
+          .orderBy(desc(liveStreams.createdAt));
+      }),
     
     anomalous: protectedProcedure.query(async () => {
       const db = await import("./db");
@@ -270,20 +294,32 @@ export const appRouter = router({
   
   // Trade Records (P_Trade)
   trades: router({
-    list: protectedProcedure.query(async () => {
-      const { getDb } = await import("./db");
-      const db = await getDb();
-      if (!db) return [];
-      const { tradeRecords, users } = await import("../drizzle/schema");
-      const { desc, eq } = await import("drizzle-orm");
-      
-      return db.select({
-        trade: tradeRecords,
-        user: users,
-      }).from(tradeRecords)
-        .leftJoin(users, eq(tradeRecords.userId, users.id))
-        .orderBy(desc(tradeRecords.createdAt));
-    }),
+    list: protectedProcedure
+      .input(z.object({
+        stageId: z.number().optional(), // 阶段筛选
+      }).optional())
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return [];
+        const { tradeRecords, users, stageBudgets } = await import("../drizzle/schema");
+        const { desc, eq, and } = await import("drizzle-orm");
+        
+        const conditions = [];
+        if (input?.stageId) {
+          conditions.push(eq(tradeRecords.stageId, input.stageId));
+        }
+        
+        return db.select({
+          trade: tradeRecords,
+          user: users,
+          stage: stageBudgets,
+        }).from(tradeRecords)
+          .leftJoin(users, eq(tradeRecords.userId, users.id))
+          .leftJoin(stageBudgets, eq(tradeRecords.stageId, stageBudgets.id))
+          .where(conditions.length > 0 ? and(...conditions) : undefined)
+          .orderBy(desc(tradeRecords.createdAt));
+      }),
     
     suspicious: protectedProcedure.query(async () => {
       const db = await import("./db");

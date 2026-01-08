@@ -92,6 +92,13 @@
       "when": 1767860990326,
       "tag": "0012_worthless_champions",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1767862967318,
+      "tag": "0013_yellow_fallen_one",
+      "breakpoints": true
     }
   ]
 }

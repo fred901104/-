@@ -72,6 +72,7 @@ export type InsertPointsRecord = typeof pointsRecords.$inferInsert;
 export const tickets = mysqlTable("tickets", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("user_id").notNull(),
+  stageId: int("stage_id"), // 关联的阶段ID（S0、S1等）
   type: mysqlEnum("type", ["bug", "suggestion", "info"]).notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   content: text("content").notNull(),
@@ -80,9 +81,12 @@ export const tickets = mysqlTable("tickets", {
   baseScore: int("base_score").default(0),
   finalScore: int("final_score").default(0),
   reviewNote: text("review_note"),
-  reviewedBy: int("reviewed_by"),
+  createdBy: int("created_by"), // 创建人（提交人）
+  reviewedBy: int("reviewed_by"), // 审核人
   reviewedAt: timestamp("reviewed_at"),
+  modifiedBy: int("modified_by"), // 最后修改人
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
 
 export type Ticket = typeof tickets.$inferSelect;
@@ -94,6 +98,7 @@ export type InsertTicket = typeof tickets.$inferInsert;
 export const liveStreams = mysqlTable("live_streams", {
   id: int("id").autoincrement().primaryKey(),
   streamerId: int("streamer_id").notNull(),
+  stageId: int("stage_id"), // 关联的阶段ID（S0、S1等）
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time"),
   duration: int("duration").default(0),
@@ -105,7 +110,11 @@ export const liveStreams = mysqlTable("live_streams", {
   anomalyReason: text("anomaly_reason"),
   estimatedPoints: int("estimated_points").default(0),
   ccuSamples: text("ccu_samples"),
+  createdBy: int("created_by"), // 创建人（数据录入人）
+  reviewedBy: int("reviewed_by"), // 审核人
+  modifiedBy: int("modified_by"), // 最后修改人
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
 
 export type LiveStream = typeof liveStreams.$inferSelect;
@@ -117,6 +126,7 @@ export type InsertLiveStream = typeof liveStreams.$inferInsert;
 export const tradeRecords = mysqlTable("trade_records", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("user_id").notNull(),
+  stageId: int("stage_id"), // 关联的阶段ID（S0、S1等）
   tradePair: varchar("trade_pair", { length: 64 }).notNull(),
   tradeType: mysqlEnum("trade_type", ["spot", "futures"]).notNull(),
   feeAmount: int("fee_amount").notNull(),
@@ -127,7 +137,11 @@ export const tradeRecords = mysqlTable("trade_records", {
   suspiciousReason: text("suspicious_reason"),
   estimatedPoints: int("estimated_points").default(0),
   status: mysqlEnum("status", ["normal", "frozen", "reviewed"]).default("normal").notNull(),
+  createdBy: int("created_by"), // 创建人（数据录入人）
+  reviewedBy: int("reviewed_by"), // 审核人
+  modifiedBy: int("modified_by"), // 最后修改人
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
 
 export type TradeRecord = typeof tradeRecords.$inferSelect;
