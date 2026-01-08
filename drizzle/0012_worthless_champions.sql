@@ -1,0 +1,1 @@
+ALTER TABLE `weekly_release_rules` ADD `created_by` int NOT NULL;

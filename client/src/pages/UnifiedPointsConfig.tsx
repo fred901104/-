@@ -321,6 +321,7 @@ export default function UnifiedPointsConfig() {
                       <TableHead>池子比例</TableHead>
                       <TableHead>实际释放</TableHead>
                       <TableHead>状态</TableHead>
+                      <TableHead>操作人</TableHead>
                       <TableHead>操作</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -337,6 +338,9 @@ export default function UnifiedPointsConfig() {
                         </TableCell>
                         <TableCell>{rule.actualReleased.toLocaleString()}</TableCell>
                         <TableCell>{getStatusBadge(rule.status)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          用户ID: {rule.createdBy}
+                        </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             {rule.status === "active" && (
@@ -400,6 +404,7 @@ export default function UnifiedPointsConfig() {
                       <TableHead>实际释放</TableHead>
                       <TableHead>完成率</TableHead>
                       <TableHead>状态</TableHead>
+                      <TableHead>操作人</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -422,6 +427,9 @@ export default function UnifiedPointsConfig() {
                             </span>
                           </TableCell>
                           <TableCell>{getStatusBadge(rule.status)}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            用户ID: {rule.createdBy}
+                          </TableCell>
                         </TableRow>
                       );
                     })}

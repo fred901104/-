@@ -816,7 +816,7 @@ export const appRouter = router({
           pTradePercent: z.string(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const { getDb } = await import("./db");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
@@ -852,44 +852,20 @@ export const appRouter = router({
           (startDate.getTime() - stage.startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
         ) + 1;
 
-        // 验证：一个自然周只能有一个生效的配置（不包括已结束的）
-        const { and, or, lte, gte, ne } = await import("drizzle-orm");
-        const existingRules = await db.select().from(weeklyReleaseRules)
-          .where(
-            and(
-              eq(weeklyReleaseRules.stageId, input.stageId),
-              ne(weeklyReleaseRules.status, "ended"), // 排除已结束的
-              or(
-                // 新配置的开始时间在现有配置范围内
-                and(
-                  lte(weeklyReleaseRules.startDate, startDate),
-                  gte(weeklyReleaseRules.endDate, startDate)
-                ),
-                // 新配置的结束时间在现有配置范围内
-                and(
-                  lte(weeklyReleaseRules.startDate, endDate),
-                  gte(weeklyReleaseRules.endDate, endDate)
-                ),
-                // 新配置完全包含现有配置
-                and(
-                  gte(weeklyReleaseRules.startDate, startDate),
-                  lte(weeklyReleaseRules.endDate, endDate)
-                )
-              )
-            )
-          );
-        
-        if (existingRules.length > 0) {
-          const existingRule = existingRules[0];
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `该自然周已有配置规则（第${existingRule.weekNumber}周，状态：${existingRule.status}），请先结束或选择其他周`,
-          });
-        }
-
-        // 判断是待生效还是激活中：如果开始时间在未来，则为待生效
+        // 自动判断状态：基于当前时间和配置时间范围
         const now = new Date();
-        const status = startDate > now ? "pending" : "active";
+        let status: "pending" | "active" | "ended" = "pending";
+        
+        if (now >= startDate && now <= endDate) {
+          // 当前时间在配置范围内 → 激活中
+          status = "active";
+        } else if (now < startDate) {
+          // 当前时间在配置开始之前 → 待生效
+          status = "pending";
+        } else {
+          // 当前时间在配置结束之后 → 已结束
+          status = "ended";
+        }
         
         const [rule] = await db.insert(weeklyReleaseRules).values({
           stageId: input.stageId,
@@ -901,6 +877,7 @@ export const appRouter = router({
           pEcoPercent: input.pEcoPercent,
           pTradePercent: input.pTradePercent,
           status: status,
+          createdBy: ctx.user.id, // 记录创建人
         });
         return rule;
       }),
