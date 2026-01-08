@@ -10,10 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Users as UsersIcon, TrendingUp, Award, History, Plus, Minus, Ban, CheckCircle, Search } from "lucide-react";
+import { Users as UsersIcon, TrendingUp, Award, History, Plus, Minus, Ban, CheckCircle, Search, Download } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead, SortDirection } from "@/components/SortableTableHead";
 import { toast } from "sonner";
+import { exportToExcel, formatDateTime } from "@/lib/exportToExcel";
 
 export default function Users() {
   const [page, setPage] = useState(1);
@@ -85,6 +86,29 @@ export default function Users() {
     setRoleFilter("all");
     setBlacklistFilter("all");
     setPage(1);
+  };
+
+  // 导出用户列表
+  const handleExport = () => {
+    const exportData = users.map((user, index) => ({
+      '序号': total - ((page - 1) * pageSize + index),
+      '用户ID': user.id,
+      '昵称': user.nickname || user.name || '-',
+      'OpenID': user.openId,
+      '登录方式': user.loginMethod || '未知',
+      '角色': user.role === 'admin' ? '管理员' : '普通用户',
+      '绑定X': user.isXBound ? '是' : '否',
+      '认证主播': user.isStreamerVerified ? '是' : '否',
+      '现货交易量': parseFloat(user.spotTradingVolume || '0'),
+      '合约交易量': parseFloat(user.futuresTradingVolume || '0'),
+      '直播时长(分钟)': user.totalStreamingMinutes || 0,
+      '观看时长(分钟)': user.totalWatchingMinutes || 0,
+      '发帖数': user.totalPosts || 0,
+      '黑名单状态': user.isBlacklisted === 1 ? '已拉黑' : '正常',
+      '注册时间': formatDateTime(user.createdAt),
+    }));
+    exportToExcel(exportData, '用户积分管理', '用户列表');
+    toast.success(`已导出 ${exportData.length} 条用户数据`);
   };
 
   const openHistoryDialog = (user: any) => {
@@ -265,8 +289,20 @@ export default function Users() {
       {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle>用户列表</CardTitle>
-          <CardDescription>查看用户基本信息和积分历史</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>用户列表</CardTitle>
+              <CardDescription>查看用户基本信息和积分历史</CardDescription>
+            </div>
+            <Button
+              onClick={handleExport}
+              className="gap-2"
+              size="sm"
+            >
+              <Download className="h-4 w-4" />
+              导出Excel
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (

@@ -379,10 +379,22 @@ export default function Streams() {
         <TabsContent value="creator" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>主播直播数据统计</CardTitle>
-              <CardDescription>
-                Score_Creator = (日有效直播时长 × 5) + (平均CCU × 3) + (有效聊天条数 × 0.2) + (收到打赏手续费 × 1) + (精选内容贴数量 × 5)
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>主播直播数据统计</CardTitle>
+                  <CardDescription>
+                    Score_Creator = (日有效直播时长 × 5) + (平均CCU × 3) + (有效聊天条数 × 0.2) + (收到打赏手续费 × 1) + (精选内容贴数量 × 5)
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={handleExportStreams}
+                  className="gap-2"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4" />
+                  导出Excel
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
