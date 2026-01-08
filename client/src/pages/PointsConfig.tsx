@@ -15,6 +15,7 @@ export default function PointsConfig() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     phase: "S0",
+    totalBudget: 1000000,
     weeklyPointsTarget: 100000,
     pGenesisPercent: "40",
     pEcoPercent: "40",
@@ -94,6 +95,20 @@ export default function PointsConfig() {
                 />
                 <p className="text-xs text-muted-foreground">
                   例如：S0（第0阶段）、S1（第1阶段）
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="totalBudget">阶段总预算</Label>
+                <Input
+                  id="totalBudget"
+                  type="number"
+                  value={formData.totalBudget}
+                  onChange={(e) => setFormData({ ...formData, totalBudget: parseInt(e.target.value) || 0 })}
+                  placeholder="1000000"
+                />
+                <p className="text-xs text-muted-foreground">
+                  该阶段总积分预算（所有周的积分总和）
                 </p>
               </div>
 

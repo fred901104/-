@@ -235,6 +235,12 @@ export async function setActiveConfig(id: number) {
   return await db.update(pointsConfigs).set({ isActive: 1 }).where(eq(pointsConfigs.id, id));
 }
 
+export async function deletePointsConfig(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.delete(pointsConfigs).where(eq(pointsConfigs.id, id));
+}
+
 // ==================== 核心指标统计 ====================
 export async function getMetricsStatsByDateRange(startDate: Date, endDate: Date, phase?: string) {
   const db = await getDb();

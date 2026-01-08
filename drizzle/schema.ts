@@ -219,10 +219,22 @@ export const pointsConfigs = mysqlTable("points_configs", {
   phase: varchar("phase", { length: 32 }).notNull(), // S0, S1, S2
   totalBudget: int("total_budget").notNull(), // 该阶段总预算积分
   weeklyPointsTarget: int("weekly_points_target").notNull(), // 该阶段周期预计释放积分
-  // 分池比例
+  
+  // 时间管理
+  startDate: timestamp("start_date"), // 阶段开始时间
+  endDate: timestamp("end_date"), // 阶段结束时间（可为NULL表示无限期）
+  
+  // 状态管理
+  status: varchar("status", { length: 16 }).default("draft").notNull(), // draft, active, paused, ended
+  
+  // 池子配置（JSON字段）
+  poolsConfig: text("pools_config"), // JSON: { pools: [{ id, name, percent, isDefault, hasRules }] }
+  
+  // 分池比例（保留以便向后兼容）
   pGenesisPercent: varchar("p_genesis_percent", { length: 16 }).notNull(), // P_Genesis占比 (40%)
   pEcoPercent: varchar("p_eco_percent", { length: 16 }).notNull(), // P_Eco占比 (40%)
   pTradePercent: varchar("p_trade_percent", { length: 16 }).notNull(), // P_Trade占比 (20%)
+  
   isActive: int("is_active").default(1).notNull(),
   createdBy: int("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -231,6 +243,25 @@ export const pointsConfigs = mysqlTable("points_configs", {
 
 export type PointsConfig = typeof pointsConfigs.$inferSelect;
 export type InsertPointsConfig = typeof pointsConfigs.$inferInsert;
+
+/**
+ * 周配置表 - 管理每周的积分配置
+ */
+export const weeklyConfigs = mysqlTable("weekly_configs", {
+  id: int("id").autoincrement().primaryKey(),
+  configId: int("config_id").notNull(), // 关联的积分配置ID
+  weekNumber: int("week_number").notNull(), // 周次（1, 2, 3...）
+  startDate: timestamp("start_date").notNull(), // 该周开始时间
+  endDate: timestamp("end_date").notNull(), // 该周结束时间
+  weeklyPoints: int("weekly_points").notNull(), // 该周目标积分
+  status: varchar("status", { length: 16 }).default("active").notNull(), // active, paused, ended
+  actualPoints: int("actual_points").default(0).notNull(), // 实际发放积分（统计字段）
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type WeeklyConfig = typeof weeklyConfigs.$inferSelect;
+export type InsertWeeklyConfig = typeof weeklyConfigs.$inferInsert;
 
 /**
  * 观众贡献数据表 - P_Eco观众端数据

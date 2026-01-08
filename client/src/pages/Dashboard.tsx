@@ -14,9 +14,12 @@ import {
 } from "recharts";
 
 const COLORS = {
-  P_Genesis: "#8b5cf6",
-  P_Eco: "#3b82f6",
-  P_Trade: "#10b981",
+  P_Genesis: "#8b5cf6", // 紫色
+  P_Eco: "#3b82f6",    // 蓝色
+  P_Trade: "#10b981",  // 绿色
+  genesis: "#8b5cf6",  // 与饼图保持一致
+  eco: "#3b82f6",
+  trade: "#10b981",
 };
 
 // 健康度状态判断函数
@@ -112,6 +115,7 @@ export default function Dashboard() {
         date.setDate(date.getDate() - i);
         data.push({
           label: `${date.getMonth() + 1}/${date.getDate()}`,
+          activeUsers: Math.floor(Math.random() * 800 + 500), // 平台活跃人数
           participants: Math.floor(Math.random() * 500 + 300),
           streamHours: Math.floor(Math.random() * 200 + 100),
           tippers: Math.floor(Math.random() * 150 + 50),
@@ -129,6 +133,7 @@ export default function Dashboard() {
         date.setDate(date.getDate() - i * 7);
         data.push({
           label: `W${52 - i}`,
+          activeUsers: Math.floor(Math.random() * 3000 + 2000), // 平台活跃人数
           participants: Math.floor(Math.random() * 2000 + 1500),
           streamHours: Math.floor(Math.random() * 1000 + 600),
           tippers: Math.floor(Math.random() * 600 + 300),
@@ -146,6 +151,7 @@ export default function Dashboard() {
         date.setMonth(date.getMonth() - i);
         data.push({
           label: `${date.getMonth() + 1}月`,
+          activeUsers: Math.floor(Math.random() * 12000 + 8000), // 平台活跃人数
           participants: Math.floor(Math.random() * 8000 + 6000),
           streamHours: Math.floor(Math.random() * 4000 + 2500),
           tippers: Math.floor(Math.random() * 2500 + 1500),
@@ -433,21 +439,21 @@ export default function Dashboard() {
                   <Line 
                     type="monotone" 
                     dataKey="genesis" 
-                    stroke={COLORS.genesis} 
+                    stroke={COLORS.P_Genesis} 
                     name="P_Genesis"
                     strokeWidth={2}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="eco" 
-                    stroke={COLORS.eco} 
+                    stroke={COLORS.P_Eco} 
                     name="P_Eco"
                     strokeWidth={2}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="trade" 
-                    stroke={COLORS.trade} 
+                    stroke={COLORS.P_Trade} 
                     name="P_Trade"
                     strokeWidth={2}
                   />
@@ -503,7 +509,15 @@ export default function Dashboard() {
                 iconType="line"
               />
               
-              {/* 12个核心指标 */}
+              {/* 13个核心指标 */}
+              <Line 
+                type="monotone" 
+                dataKey="activeUsers" 
+                stroke="#f97316" 
+                name="平台活跃人数"
+                strokeWidth={2}
+                dot={false}
+              />
               <Line 
                 type="monotone" 
                 dataKey="participants" 
@@ -606,7 +620,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
           
           <div className="mt-4 text-sm text-muted-foreground">
-            <p>• 图表展示12个核心指标的趋势变化，默认隐藏交易量指标以保持图表清晰</p>
+            <p>• 图表展示13个核心指标的趋势变化，包括平台活跃人数（登录平台的用户），默认隐藏交易量指标以保持图表清晰</p>
             <p>• 点击图例中的指标名称可以显示/隐藏对应的折线</p>
           </div>
         </CardContent>

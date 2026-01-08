@@ -141,6 +141,7 @@ export const appRouter = router({
     metrics: protectedProcedure.input(z.object({ phase: z.string() })).query(async ({ input }) => {
       // 返回模拟数据，实际应从 metrics_stats 表查询
       return {
+        activeUsers: 1856, // 平台活跃人数（登录平台的用户）
         contributorsCount: 234,
         totalStreamHours: 1250.5,
         tippersCount: 89,
@@ -629,16 +630,45 @@ export const appRouter = router({
     
     create: protectedProcedure.input(z.object({
       phase: z.string(),
+      totalBudget: z.number(),
       weeklyPointsTarget: z.number(),
+      startDate: z.date().optional(),
+      endDate: z.date().optional(),
       pGenesisPercent: z.string(),
       pEcoPercent: z.string(),
       pTradePercent: z.string(),
+      poolsConfig: z.string().optional(), // JSON string
     })).mutation(async ({ input, ctx }) => {
       const db = await import("./db");
       return db.createPointsConfig({
         ...input,
+        status: "draft",
         createdBy: ctx.user!.id,
       });
+    }),
+    
+    update: protectedProcedure.input(z.object({
+      id: z.number(),
+      phase: z.string().optional(),
+      totalBudget: z.number().optional(),
+      weeklyPointsTarget: z.number().optional(),
+      startDate: z.date().optional(),
+      endDate: z.date().optional(),
+      pGenesisPercent: z.string().optional(),
+      pEcoPercent: z.string().optional(),
+      pTradePercent: z.string().optional(),
+      poolsConfig: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      const { id, ...updates } = input;
+      const db = await import("./db");
+      return db.updatePointsConfig(id, updates);
+    }),
+    
+    delete: protectedProcedure.input(z.object({
+      id: z.number(),
+    })).mutation(async ({ input }) => {
+      const db = await import("./db");
+      return db.deletePointsConfig(input.id);
     }),
     
     setActive: protectedProcedure.input(z.object({
@@ -646,6 +676,35 @@ export const appRouter = router({
     })).mutation(async ({ input }) => {
       const db = await import("./db");
       return db.setActiveConfig(input.id);
+    }),
+    
+    // 状态管理
+    activate: protectedProcedure.input(z.object({
+      id: z.number(),
+    })).mutation(async ({ input }) => {
+      const db = await import("./db");
+      return db.updatePointsConfig(input.id, { status: "active", isActive: 1 });
+    }),
+    
+    pause: protectedProcedure.input(z.object({
+      id: z.number(),
+    })).mutation(async ({ input }) => {
+      const db = await import("./db");
+      return db.updatePointsConfig(input.id, { status: "paused" });
+    }),
+    
+    resume: protectedProcedure.input(z.object({
+      id: z.number(),
+    })).mutation(async ({ input }) => {
+      const db = await import("./db");
+      return db.updatePointsConfig(input.id, { status: "active" });
+    }),
+    
+    end: protectedProcedure.input(z.object({
+      id: z.number(),
+    })).mutation(async ({ input }) => {
+      const db = await import("./db");
+      return db.updatePointsConfig(input.id, { status: "ended", isActive: 0 });
     }),
   }),
 });
