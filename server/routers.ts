@@ -418,7 +418,122 @@ export const appRouter = router({
       return db.getStreamById(input.id);
     }),
     
-    // 获取用户积分统计（P_Eco）
+    // 获取主播贡献用户积分统计
+    creatorUserPoints: protectedProcedure.query(async () => {
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) return [];
+      
+      const { pointsRecords, users, stageBudgets, creatorContributions } = await import("../drizzle/schema");
+      const { eq, and } = await import("drizzle-orm");
+      
+      const stages = await db.select().from(stageBudgets).orderBy(stageBudgets.id);
+      const currentStage = stages.find(s => s.status === 'active');
+      
+      // 获取主播贡献数据
+      const creatorRecords = await db.select({
+        userId: creatorContributions.userId,
+        streamScore: creatorContributions.streamScore,
+        ccuScore: creatorContributions.ccuScore,
+        chatScore: creatorContributions.chatScore,
+        tipScore: creatorContributions.tipScore,
+        featuredPostScore: creatorContributions.featuredPostScore,
+        totalScore: creatorContributions.totalScore,
+        userName: users.name,
+        userOpenId: users.openId,
+      }).from(creatorContributions)
+        .leftJoin(users, eq(creatorContributions.userId, users.id));
+      
+      const userPointsMap = new Map<number, {
+        userId: number;
+        userName: string;
+        userOpenId: string;
+        currentPeriodPoints: number;
+        totalPoints: number;
+        stagePoints: Record<string, number>;
+      }>();
+      
+      for (const record of creatorRecords) {
+        if (!record.userId) continue;
+        
+        if (!userPointsMap.has(record.userId)) {
+          userPointsMap.set(record.userId, {
+            userId: record.userId,
+            userName: record.userName || 'Unknown',
+            userOpenId: record.userOpenId || '',
+            currentPeriodPoints: 0,
+            totalPoints: 0,
+            stagePoints: {},
+          });
+        }
+        
+        const userPoints = userPointsMap.get(record.userId)!;
+        const totalScore = parseFloat(record.totalScore || '0');
+        userPoints.totalPoints += totalScore;
+        userPoints.currentPeriodPoints += totalScore;
+      }
+      
+      return Array.from(userPointsMap.values()).sort((a, b) => b.currentPeriodPoints - a.currentPeriodPoints);
+    }),
+    
+    // 获取观众贡献用户积分统计
+    audienceUserPoints: protectedProcedure.query(async () => {
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) return [];
+      
+      const { audienceContributions, users, stageBudgets } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      
+      const stages = await db.select().from(stageBudgets).orderBy(stageBudgets.id);
+      const currentStage = stages.find(s => s.status === 'active');
+      
+      // 获取观众贡献数据
+      const audienceRecords = await db.select({
+        userId: audienceContributions.userId,
+        tipScore: audienceContributions.tipScore,
+        watchScore: audienceContributions.watchScore,
+        chatScore: audienceContributions.chatScore,
+        featuredPostScore: audienceContributions.featuredPostScore,
+        totalScore: audienceContributions.totalScore,
+        userName: users.name,
+        userOpenId: users.openId,
+      }).from(audienceContributions)
+        .leftJoin(users, eq(audienceContributions.userId, users.id));
+      
+      const userPointsMap = new Map<number, {
+        userId: number;
+        userName: string;
+        userOpenId: string;
+        currentPeriodPoints: number;
+        totalPoints: number;
+        stagePoints: Record<string, number>;
+      }>();
+      
+      for (const record of audienceRecords) {
+        if (!record.userId) continue;
+        
+        if (!userPointsMap.has(record.userId)) {
+          userPointsMap.set(record.userId, {
+            userId: record.userId,
+            userName: record.userName || 'Unknown',
+            userOpenId: record.userOpenId || '',
+            currentPeriodPoints: 0,
+            totalPoints: 0,
+            stagePoints: {},
+          });
+        }
+        
+        const userPoints = userPointsMap.get(record.userId)!;
+        const totalScore = parseFloat(record.totalScore || '0');
+        userPoints.totalPoints += totalScore;
+        userPoints.currentPeriodPoints += totalScore;
+      }
+      
+      return Array.from(userPointsMap.values()).sort((a, b) => b.currentPeriodPoints - a.currentPeriodPoints);
+    }),
+    
+    // 获取用户积分统计（P_Eco） - 保留兼容
     userPoints: protectedProcedure.query(async () => {
       const { getDb } = await import("./db");
       const db = await getDb();

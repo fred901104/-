@@ -81,8 +81,11 @@ export default function Streams() {
     selectedStageId ? { stageId: selectedStageId } : undefined
   );
   
-  // 获取用户积分统计
-  const { data: userPoints, isLoading: isLoadingUserPoints } = trpc.streams.userPoints.useQuery();
+  // 获取主播用户积分统计
+  const { data: creatorUserPoints, isLoading: isLoadingCreatorUserPoints } = trpc.streams.creatorUserPoints.useQuery();
+  
+  // 获取观众用户积分统计
+  const { data: audienceUserPoints, isLoading: isLoadingAudienceUserPoints } = trpc.streams.audienceUserPoints.useQuery();
 
   // 导出主播贡献功能
   const handleExportStreams = () => {
@@ -349,7 +352,7 @@ export default function Streams() {
 
       {/* Tabs for Creator/Audience/UserPoints */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full max-w-2xl grid-cols-3">
+        <TabsList className="grid w-full max-w-3xl grid-cols-4">
           <TabsTrigger value="creator">
             <Radio className="h-4 w-4 mr-2" />
             主播贡献
@@ -358,9 +361,13 @@ export default function Streams() {
             <Users className="h-4 w-4 mr-2" />
             观众贡献
           </TabsTrigger>
-          <TabsTrigger value="userPoints">
+          <TabsTrigger value="creatorUserPoints">
             <TrendingUp className="h-4 w-4 mr-2" />
-            用户积分获取表
+            主播积分表
+          </TabsTrigger>
+          <TabsTrigger value="audienceUserPoints">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            观众积分表
           </TabsTrigger>
         </TabsList>
 
@@ -760,12 +767,21 @@ export default function Streams() {
           </Card>
         </TabsContent>
         
-        {/* User Points Tab */}
-        <TabsContent value="userPoints">
+        {/* Creator User Points Tab */}
+        <TabsContent value="creatorUserPoints">
           <UserPointsTable 
-            data={userPoints || []} 
-            poolName="P_Eco 生态池" 
-            isLoading={isLoadingUserPoints}
+            data={creatorUserPoints || []} 
+            poolName="P_Eco 生态池 - 主播贡献" 
+            isLoading={isLoadingCreatorUserPoints}
+          />
+        </TabsContent>
+        
+        {/* Audience User Points Tab */}
+        <TabsContent value="audienceUserPoints">
+          <UserPointsTable 
+            data={audienceUserPoints || []} 
+            poolName="P_Eco 生态池 - 观众贡献" 
+            isLoading={isLoadingAudienceUserPoints}
           />
         </TabsContent>
       </Tabs>

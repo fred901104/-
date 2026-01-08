@@ -1114,3 +1114,33 @@
 - [x] 支持不同池子的数据展示（P_Genesis、P_Eco、P_Trade）
 - [x] 保持统一的表格样式和交互体验
 
+
+
+---
+
+## ✅ 2026-01-08 用户积分获取表数据来源修复完成
+
+### 用户积分获取表数据来源错误修复
+- [x] P_Eco生态池：当前显示的是创世池数据，应该显示生态池的主播和观众积分数据
+  - [x] 添加主播贡献用户积分表（显示作为主播直播获得积分的用户）
+  - [x] 添加观众贡献用户积分表（显示作为观众观看、打赏等获得积分的用户）
+- [x] P_Trade交易池：当前显示的是创世池数据，应该显示交易用户积分数据
+  - [x] 修改为显示通过交易行为获得积分的用户列表
+- [x] 检查后端API是否已有对应的用户积分统计接口
+- [x] 创建新的API端点：streams.creatorUserPoints和streams.audienceUserPoints
+
+### 后端API改动
+- [x] 在server/routers.ts中添加streams.creatorUserPoints API
+- [x] 在server/routers.ts中添加streams.audienceUserPoints API
+- [x] 修改Streams页面，使用新的API
+- [x] Trades页面已经正确使用trades.userPoints API
+
+### 前端改动
+- [x] Streams页面：将原Tab改为4个Tab（主播贡献、观众贡献、主播积分表、观众积分表）
+- [x] Streams页面：调用streams.creatorUserPoints和streams.audienceUserPoints
+- [x] Trades页面：已经正确使用trades.userPoints
+
+### 注意事项
+- ⚠️ Streams页面的主播积分表和观众积分表当前显示“共 0 位参与者”，因为creatorContributions和audienceContributions表中暂无数据
+- 如需测试，需要先生成主播和观众贡献数据
+
