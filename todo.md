@@ -1144,3 +1144,42 @@
 - ⚠️ Streams页面的主播积分表和观众积分表当前显示“共 0 位参与者”，因为creatorContributions和audienceContributions表中暂无数据
 - 如需测试，需要先生成主播和观众贡献数据
 
+
+
+---
+
+## ✅ 2026-01-08 全局阶段筛选功能修复完成
+
+### 问题描述
+- [x] P_Genesis创世池：阶段筛选只对反馈工单表生效，对用户积分获取表无效
+- [x] P_Eco生态池：阶段筛选只对第一个Tab生效，对其他Tab无效
+- [x] P_Trade交易池：阶段筛选只对交易积分明细表生效，对用户积分获取表无效
+
+### 修复目标
+- [x] 确保全局阶段筛选器对所有Tab都生效
+- [x] 选择S0时，所有表都显示S0的数据
+- [x] 选择S1时，所有表都显示S1的数据
+- [x] 选择“全部阶段”时，所有表都显示全部数据
+
+### 实现步骤
+- [x] 检查Tickets页面的阶段筛选实现逻辑
+- [x] 修复Tickets页面的用户积分表，使其支持阶段筛选
+- [x] 修复Streams页面的所有Tab，使其支持阶段筛选
+- [x] 修复Trades页面的用户积分表，使其支持阶段筛选
+- [x] 确保后端API支持stageId参数过滤
+
+### 后端API改动
+- [x] tickets.userPoints API：添加stageId参数，通过tickets表的stageId过滤
+- [x] trades.userPoints API：添加stageId参数，通过tradeRecords表的stageId过滤
+- [x] streams.creatorUserPoints API：添加stageId参数，通过live_streams表的stageId过滤
+- [x] streams.audienceUserPoints API：添加stageId参数（但audienceContributions表无法按阶段筛选）
+
+### 前端改动
+- [x] Tickets页面：将selectedStageId传递给userPoints API
+- [x] Trades页面：将selectedStageId传递给userPoints API
+- [x] Streams页面：将selectedStageId传递给creatorUserPoints和audienceUserPoints API
+
+### 注意事项
+- ⚠️ Streams页面的观众积分表无法按阶段筛选，因为audienceContributions表没有streamId字段，无法关联live_streams表获取stageId
+- 如需解决观众积分表的阶段筛选问题，需要在audienceContributions表中添加stageId字段
+

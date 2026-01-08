@@ -86,8 +86,10 @@ export default function Trades() {
     selectedStageId ? { stageId: selectedStageId } : undefined
   );
   
-  // 获取用户积分统计
-  const { data: userPoints, isLoading: isLoadingUserPoints } = trpc.trades.userPoints.useQuery();
+  // 获取用户积分统计（根据阶段筛选）
+  const { data: userPoints, isLoading: isLoadingUserPoints } = trpc.trades.userPoints.useQuery(
+    selectedStageId ? { stageId: selectedStageId } : undefined
+  );
   const freezeMutation = trpc.trades.freeze.useMutation();
 
   const filterConfig: FilterConfig = {

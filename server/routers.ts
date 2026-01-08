@@ -252,7 +252,9 @@ export const appRouter = router({
     }),
     
     // 获取用户积分统计（P_Genesis）
-    userPoints: protectedProcedure.query(async () => {
+    userPoints: protectedProcedure
+      .input(z.object({ stageId: z.number().optional() }).optional())
+      .query(async ({ input }) => {
       const { getDb } = await import("./db");
       const db = await getDb();
       if (!db) return [];
@@ -267,6 +269,13 @@ export const appRouter = router({
       const currentStage = stages.find(s => s.status === 'active');
       
       // 获取所有P_Genesis类型的积分记录，通过tickets表关联获取stageId
+      // 根据stageId过滤数据
+      const { and } = await import("drizzle-orm");
+      const whereConditions = [eq(pointsRecords.type, 'genesis')];
+      if (input?.stageId) {
+        whereConditions.push(eq(tickets.stageId, input.stageId));
+      }
+      
       const genesisRecords = await db.select({
         userId: pointsRecords.userId,
         stageId: tickets.stageId,
@@ -278,7 +287,7 @@ export const appRouter = router({
       }).from(pointsRecords)
         .leftJoin(users, eq(pointsRecords.userId, users.id))
         .leftJoin(tickets, eq(pointsRecords.relatedId, tickets.id))
-        .where(eq(pointsRecords.type, 'genesis'));
+        .where(and(...whereConditions));
       
       // 按用户聚合数据
       const userPointsMap = new Map<number, {
@@ -419,16 +428,24 @@ export const appRouter = router({
     }),
     
     // 获取主播贡献用户积分统计
-    creatorUserPoints: protectedProcedure.query(async () => {
+    creatorUserPoints: protectedProcedure
+      .input(z.object({ stageId: z.number().optional() }).optional())
+      .query(async ({ input }) => {
       const { getDb } = await import("./db");
       const db = await getDb();
       if (!db) return [];
       
-      const { pointsRecords, users, stageBudgets, creatorContributions } = await import("../drizzle/schema");
+      const { pointsRecords, users, stageBudgets, creatorContributions, liveStreams } = await import("../drizzle/schema");
       const { eq, and } = await import("drizzle-orm");
       
       const stages = await db.select().from(stageBudgets).orderBy(stageBudgets.id);
       const currentStage = stages.find(s => s.status === 'active');
+      
+      // 根据stageId过滤数据（通过live_streams表关联）
+      const whereConditions = [];
+      if (input?.stageId) {
+        whereConditions.push(eq(liveStreams.stageId, input.stageId));
+      }
       
       // 获取主播贡献数据
       const creatorRecords = await db.select({
@@ -442,7 +459,9 @@ export const appRouter = router({
         userName: users.name,
         userOpenId: users.openId,
       }).from(creatorContributions)
-        .leftJoin(users, eq(creatorContributions.userId, users.id));
+        .leftJoin(users, eq(creatorContributions.userId, users.id))
+        .leftJoin(liveStreams, eq(creatorContributions.streamId, liveStreams.id))
+        .where(whereConditions.length > 0 ? and(...whereConditions) : undefined);
       
       const userPointsMap = new Map<number, {
         userId: number;
@@ -477,7 +496,10 @@ export const appRouter = router({
     }),
     
     // 获取观众贡献用户积分统计
-    audienceUserPoints: protectedProcedure.query(async () => {
+    // 注意：audienceContributions表没有streamId字段，无法按阶段筛选
+    audienceUserPoints: protectedProcedure
+      .input(z.object({ stageId: z.number().optional() }).optional())
+      .query(async ({ input }) => {
       const { getDb } = await import("./db");
       const db = await getDb();
       if (!db) return [];
@@ -666,16 +688,24 @@ export const appRouter = router({
     }),
     
     // 获取用户积分统计（P_Trade）
-    userPoints: protectedProcedure.query(async () => {
+    userPoints: protectedProcedure
+      .input(z.object({ stageId: z.number().optional() }).optional())
+      .query(async ({ input }) => {
       const { getDb } = await import("./db");
       const db = await getDb();
       if (!db) return [];
       
       const { pointsRecords, users, stageBudgets, tradeRecords } = await import("../drizzle/schema");
-      const { eq } = await import("drizzle-orm");
+      const { eq, and } = await import("drizzle-orm");
       
       const stages = await db.select().from(stageBudgets).orderBy(stageBudgets.id);
       const currentStage = stages.find(s => s.status === 'active');
+      
+      // 根据stageId过滤数据
+      const whereConditions = [eq(pointsRecords.type, 'trade')];
+      if (input?.stageId) {
+        whereConditions.push(eq(tradeRecords.stageId, input.stageId));
+      }
       
       const tradePointsRecords = await db.select({
         userId: pointsRecords.userId,
@@ -686,7 +716,7 @@ export const appRouter = router({
       }).from(pointsRecords)
         .leftJoin(users, eq(pointsRecords.userId, users.id))
         .leftJoin(tradeRecords, eq(pointsRecords.relatedId, tradeRecords.id))
-        .where(eq(pointsRecords.type, 'trade'));
+        .where(and(...whereConditions));
       
       const userPointsMap = new Map<number, {
         userId: number;

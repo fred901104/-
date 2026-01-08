@@ -52,8 +52,10 @@ export default function Tickets() {
     selectedStageId ? { stageId: selectedStageId } : undefined
   );
   
-  // 获取用户积分统计
-  const { data: userPoints, isLoading: isLoadingUserPoints } = trpc.tickets.userPoints.useQuery();
+  // 获取用户积分统计（根据阶段筛选）
+  const { data: userPoints, isLoading: isLoadingUserPoints } = trpc.tickets.userPoints.useQuery(
+    selectedStageId ? { stageId: selectedStageId } : undefined
+  );
   const reviewMutation = trpc.tickets.review.useMutation();
   
   const [selectedTicket, setSelectedTicket] = useState<any>(null);

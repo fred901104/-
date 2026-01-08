@@ -81,11 +81,15 @@ export default function Streams() {
     selectedStageId ? { stageId: selectedStageId } : undefined
   );
   
-  // 获取主播用户积分统计
-  const { data: creatorUserPoints, isLoading: isLoadingCreatorUserPoints } = trpc.streams.creatorUserPoints.useQuery();
+  // 获取主播用户积分统计（根据阶段筛选）
+  const { data: creatorUserPoints, isLoading: isLoadingCreatorUserPoints } = trpc.streams.creatorUserPoints.useQuery(
+    selectedStageId ? { stageId: selectedStageId } : undefined
+  );
   
-  // 获取观众用户积分统计
-  const { data: audienceUserPoints, isLoading: isLoadingAudienceUserPoints } = trpc.streams.audienceUserPoints.useQuery();
+  // 获取观众用户积分统计（注意：audienceContributions表无法按阶段筛选）
+  const { data: audienceUserPoints, isLoading: isLoadingAudienceUserPoints } = trpc.streams.audienceUserPoints.useQuery(
+    selectedStageId ? { stageId: selectedStageId } : undefined
+  );
 
   // 导出主播贡献功能
   const handleExportStreams = () => {
