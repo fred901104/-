@@ -26,7 +26,7 @@ export default function UnifiedPointsConfig() {
   });
 
   const [weekFormData, setWeekFormData] = useState({
-    weekStartDate: "", // 只需要周一的日期
+    selectedDate: "", // 任意日期，系统自动计算所属自然周
     weeklyPointsTarget: 100000,
     pGenesisPercent: "40",
     pEcoPercent: "40",
@@ -72,7 +72,7 @@ export default function UnifiedPointsConfig() {
       setIsCreateWeekDialogOpen(false);
       refetchWeeks();
       setWeekFormData({
-        weekStartDate: "",
+        selectedDate: "",
         weeklyPointsTarget: 100000,
         pGenesisPercent: "40",
         pEcoPercent: "40",
@@ -145,8 +145,8 @@ export default function UnifiedPointsConfig() {
       return;
     }
 
-    if (!weekFormData.weekStartDate) {
-      toast.error("请选择周一的日期");
+    if (!weekFormData.selectedDate) {
+      toast.error("请选择日期");
       return;
     }
 
@@ -159,7 +159,7 @@ export default function UnifiedPointsConfig() {
 
     createWeekMutation.mutate({
       stageId: selectedStageId,
-      weekStartDate: new Date(weekFormData.weekStartDate),
+      selectedDate: new Date(weekFormData.selectedDate),
       weeklyPointsTarget: weekFormData.weeklyPointsTarget,
       pGenesisPercent: weekFormData.pGenesisPercent,
       pEcoPercent: weekFormData.pEcoPercent,
@@ -269,17 +269,7 @@ export default function UnifiedPointsConfig() {
               )}
             </div>
 
-            <div className="flex gap-2">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => endStageMutation.mutate({ id: activeStage.id })}
-                disabled={endStageMutation.isPending}
-              >
-                <XCircle className="mr-2 h-4 w-4" />
-                结束阶段
-              </Button>
-            </div>
+
           </CardContent>
         </Card>
       )}
@@ -527,18 +517,18 @@ export default function UnifiedPointsConfig() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="weekStartDate">选择周一日期 *</Label>
+              <Label htmlFor="selectedDate">选择日期 *</Label>
               <Input
-                id="weekStartDate"
+                id="selectedDate"
                 type="date"
-                value={weekFormData.weekStartDate}
-                onChange={(e) => setWeekFormData({ ...weekFormData, weekStartDate: e.target.value })}
+                value={weekFormData.selectedDate}
+                onChange={(e) => setWeekFormData({ ...weekFormData, selectedDate: e.target.value })}
               />
-              <p className="text-xs text-red-500">
-                请选择周一的日期，系统会自动计算该自然周的开始和结束时间
+              <p className="text-xs text-blue-600">
+                可以选择任意日期，系统会自动计算该日期所属的自然周（周一到00:00 - 周日23:59:59）
               </p>
               <p className="text-xs text-muted-foreground">
-                周次将根据阶段开始日期自动计算
+                例如：选择1月15日（周三），系统会自动计算为1月13日（周一）到1月19日（周日）
               </p>
             </div>
 

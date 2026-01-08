@@ -1,0 +1,32 @@
+{
+  "query": "SELECT * FROM stage_budgets",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2KMpFtxdhMwESN4.root --database h7v6obutbNu2TWm3TCgiTk --execute SELECT * FROM stage_budgets",
+  "rows": [
+    {
+      "id": "2",
+      "stage_name": "S0 alpha",
+      "total_budget": "1000000",
+      "used_budget": "0",
+      "start_date": "2026-01-08 00:00:00",
+      "end_date": "2026-01-15 00:00:00",
+      "status": "ended",
+      "created_at": "2026-01-08 05:48:37",
+      "updated_at": "2026-01-08 06:25:43"
+    },
+    {
+      "id": "3",
+      "stage_name": "S0",
+      "total_budget": "1000000",
+      "used_budget": "0",
+      "start_date": "2026-01-08 00:00:00",
+      "end_date": "2026-01-15 00:00:00",
+      "status": "ended",
+      "created_at": "2026-01-08 06:26:15",
+      "updated_at": "2026-01-08 07:33:19"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstage_name\ttotal_budget\tused_budget\tstart_date\tend_date\tstatus\tcreated_at\tupdated_at\n2\tS0 alpha\t1000000\t0\t2026-01-08 00:00:00\t2026-01-15 00:00:00\tended\t2026-01-08 05:48:37\t2026-01-08 06:25:43\n3\tS0\t1000000\t0\t2026-01-08 00:00:00\t2026-01-15 00:00:00\tended\t2026-01-08 06:26:15\t2026-01-08 07:33:19\n",
+  "stderr": "",
+  "execution_time_ms": 1537
+}

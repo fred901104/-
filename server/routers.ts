@@ -646,6 +646,17 @@ export const appRouter = router({
         const { eq } = await import("drizzle-orm");
         const { TRPCError } = await import("@trpc/server");
         
+        // 验证：stageName唯一性
+        const existingStage = await db.select().from(stageBudgets)
+          .where(eq(stageBudgets.stageName, input.stageName));
+        
+        if (existingStage.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `阶段标识 "${input.stageName}" 已存在，请使用其他名称`,
+          });
+        }
+        
         // 验证：同一时间只能有一个Active阶段
         const activeStages = await db.select().from(stageBudgets)
           .where(eq(stageBudgets.status, "active"));
@@ -653,18 +664,32 @@ export const appRouter = router({
         if (activeStages.length > 0) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `已存在激活中的阶段配置（${activeStages[0].stageName}），请先结束或暂停现有配置`,
+            message: `已存在激活中的阶段配置（${activeStages[0].stageName}），请先结束现有配置`,
           });
         }
         
-        const [stage] = await db.insert(stageBudgets).values({
-          stageName: input.stageName,
-          totalBudget: input.totalBudget,
-          startDate: input.startDate,
-          endDate: input.endDate,
-          status: "active",
-        });
-        return stage;
+        try {
+          const [stage] = await db.insert(stageBudgets).values({
+            stageName: input.stageName,
+            totalBudget: input.totalBudget,
+            startDate: input.startDate,
+            endDate: input.endDate,
+            status: "active",
+          });
+          return stage;
+        } catch (error: any) {
+          // 捕获数据库错误
+          if (error.code === 'ER_DUP_ENTRY') {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `阶段标识 "${input.stageName}" 已存在，请使用其他名称`,
+            });
+          }
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `创建阶段失败: ${error.message}`,
+          });
+        }
       }),
 
     // 调整预算
@@ -784,7 +809,7 @@ export const appRouter = router({
       .input(
         z.object({
           stageId: z.number(),
-          weekStartDate: z.date(), // 只需要周一的日期，自动计算周日
+          selectedDate: z.date(), // 任意日期，系统自动计算所属自然周
           weeklyPointsTarget: z.number().min(0),
           pGenesisPercent: z.string(),
           pEcoPercent: z.string(),
@@ -806,17 +831,16 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "阶段不存在" });
         }
 
-        // 验证：必须是自然周（周一开始）
-        const startDay = input.weekStartDate.getDay();
-        if (startDay !== 1) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "周配置必须从周一开始（自然周），请选择周一的日期",
-          });
-        }
+        // 自动计算所属自然周（周一到00:00 - 周日23:59:59）
+        const selectedDate = new Date(input.selectedDate);
+        selectedDate.setHours(0, 0, 0, 0);
         
-        // 自动计算周结束时间（周日23:59:59）
-        const startDate = new Date(input.weekStartDate);
+        // 计算该日期所属的周一
+        const dayOfWeek = selectedDate.getDay(); // 0=周日, 1=周一, ..., 6=周六
+        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // 如果是周日，则回溯到6天到周一
+        
+        const startDate = new Date(selectedDate);
+        startDate.setDate(startDate.getDate() + daysToMonday);
         startDate.setHours(0, 0, 0, 0); // 周一00:00:00
         
         const endDate = new Date(startDate);
