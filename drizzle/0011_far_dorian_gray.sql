@@ -1,0 +1,1 @@
+ALTER TABLE `weekly_release_rules` MODIFY COLUMN `status` enum('pending','active','paused','ended') NOT NULL DEFAULT 'pending';

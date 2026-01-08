@@ -784,9 +784,7 @@ export const appRouter = router({
       .input(
         z.object({
           stageId: z.number(),
-          weekNumber: z.number(),
-          startDate: z.date(),
-          endDate: z.date(),
+          weekStartDate: z.date(), // 只需要周一的日期，自动计算周日
           weeklyPointsTarget: z.number().min(0),
           pGenesisPercent: z.string(),
           pEcoPercent: z.string(),
@@ -809,57 +807,76 @@ export const appRouter = router({
         }
 
         // 验证：必须是自然周（周一开始）
-        const startDay = input.startDate.getDay();
+        const startDay = input.weekStartDate.getDay();
         if (startDay !== 1) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "周配置必须从周一开始（自然周）",
+            message: "周配置必须从周一开始（自然周），请选择周一的日期",
           });
         }
+        
+        // 自动计算周结束时间（周日23:59:59）
+        const startDate = new Date(input.weekStartDate);
+        startDate.setHours(0, 0, 0, 0); // 周一00:00:00
+        
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 6); // +6天 = 周日
+        endDate.setHours(23, 59, 59, 999); // 周旧23:59:59
+        
+        // 计算周次（基于阶段开始日期）
+        const weekNumber = Math.floor(
+          (startDate.getTime() - stage.startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+        ) + 1;
 
-        // 验证：时间范围不重叠
-        const { and, or, lte, gte } = await import("drizzle-orm");
-        const overlappingRules = await db.select().from(weeklyReleaseRules)
+        // 验证：一个自然周只能有一个生效的配置（不包括已结束的）
+        const { and, or, lte, gte, ne } = await import("drizzle-orm");
+        const existingRules = await db.select().from(weeklyReleaseRules)
           .where(
             and(
               eq(weeklyReleaseRules.stageId, input.stageId),
+              ne(weeklyReleaseRules.status, "ended"), // 排除已结束的
               or(
                 // 新配置的开始时间在现有配置范围内
                 and(
-                  lte(weeklyReleaseRules.startDate, input.startDate),
-                  gte(weeklyReleaseRules.endDate, input.startDate)
+                  lte(weeklyReleaseRules.startDate, startDate),
+                  gte(weeklyReleaseRules.endDate, startDate)
                 ),
                 // 新配置的结束时间在现有配置范围内
                 and(
-                  lte(weeklyReleaseRules.startDate, input.endDate),
-                  gte(weeklyReleaseRules.endDate, input.endDate)
+                  lte(weeklyReleaseRules.startDate, endDate),
+                  gte(weeklyReleaseRules.endDate, endDate)
                 ),
                 // 新配置完全包含现有配置
                 and(
-                  gte(weeklyReleaseRules.startDate, input.startDate),
-                  lte(weeklyReleaseRules.endDate, input.endDate)
+                  gte(weeklyReleaseRules.startDate, startDate),
+                  lte(weeklyReleaseRules.endDate, endDate)
                 )
               )
             )
           );
         
-        if (overlappingRules.length > 0) {
+        if (existingRules.length > 0) {
+          const existingRule = existingRules[0];
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "该时间段与现有周配置重叠，请选择其他时间段",
+            message: `该自然周已有配置规则（第${existingRule.weekNumber}周，状态：${existingRule.status}），请先结束或选择其他周`,
           });
         }
 
+        // 判断是待生效还是激活中：如果开始时间在未来，则为待生效
+        const now = new Date();
+        const status = startDate > now ? "pending" : "active";
+        
         const [rule] = await db.insert(weeklyReleaseRules).values({
           stageId: input.stageId,
-          weekNumber: input.weekNumber,
-          startDate: input.startDate,
-          endDate: input.endDate,
+          weekNumber: weekNumber,
+          startDate: startDate,
+          endDate: endDate,
           weeklyPointsTarget: input.weeklyPointsTarget,
           pGenesisPercent: input.pGenesisPercent,
           pEcoPercent: input.pEcoPercent,
           pTradePercent: input.pTradePercent,
-          status: "active",
+          status: status,
         });
         return rule;
       }),

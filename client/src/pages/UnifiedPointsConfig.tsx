@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Settings, Plus, AlertTriangle, CheckCircle2, Pause, Play, XCircle } from "lucide-react";
+import { Settings, Plus, AlertTriangle, CheckCircle2, Pause, Play, XCircle, Clock, History } from "lucide-react";
 
 export default function UnifiedPointsConfig() {
   const [isCreateStageDialogOpen, setIsCreateStageDialogOpen] = useState(false);
@@ -25,9 +26,7 @@ export default function UnifiedPointsConfig() {
   });
 
   const [weekFormData, setWeekFormData] = useState({
-    weekNumber: 1,
-    startDate: "",
-    endDate: "",
+    weekStartDate: "", // 只需要周一的日期
     weeklyPointsTarget: 100000,
     pGenesisPercent: "40",
     pEcoPercent: "40",
@@ -73,9 +72,7 @@ export default function UnifiedPointsConfig() {
       setIsCreateWeekDialogOpen(false);
       refetchWeeks();
       setWeekFormData({
-        weekNumber: 1,
-        startDate: "",
-        endDate: "",
+        weekStartDate: "",
         weeklyPointsTarget: 100000,
         pGenesisPercent: "40",
         pEcoPercent: "40",
@@ -148,8 +145,8 @@ export default function UnifiedPointsConfig() {
       return;
     }
 
-    if (!weekFormData.startDate || !weekFormData.endDate) {
-      toast.error("请填写所有必填字段");
+    if (!weekFormData.weekStartDate) {
+      toast.error("请选择周一的日期");
       return;
     }
 
@@ -162,9 +159,7 @@ export default function UnifiedPointsConfig() {
 
     createWeekMutation.mutate({
       stageId: selectedStageId,
-      weekNumber: weekFormData.weekNumber,
-      startDate: new Date(weekFormData.startDate),
-      endDate: new Date(weekFormData.endDate),
+      weekStartDate: new Date(weekFormData.weekStartDate),
       weeklyPointsTarget: weekFormData.weeklyPointsTarget,
       pGenesisPercent: weekFormData.pGenesisPercent,
       pEcoPercent: weekFormData.pEcoPercent,
@@ -182,6 +177,8 @@ export default function UnifiedPointsConfig() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case "pending":
+        return <Badge className="bg-blue-500"><Clock className="h-3 w-3 mr-1" />待生效</Badge>;
       case "active":
         return <Badge className="bg-green-500">激活中</Badge>;
       case "paused":
@@ -203,6 +200,10 @@ export default function UnifiedPointsConfig() {
         return <CheckCircle2 className="h-5 w-5 text-green-500" />;
     }
   };
+
+  // 分类周配置：已配置（active/paused/pending）和过往配置（ended）
+  const activeWeeklyRules = weeklyRules?.filter(r => r.status !== "ended") || [];
+  const historicalWeeklyRules = weeklyRules?.filter(r => r.status === "ended") || [];
 
   return (
     <div className="space-y-6">
@@ -230,7 +231,7 @@ export default function UnifiedPointsConfig() {
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 {getWarningIcon(budgetUsage.warningLevel)}
-                当前激活阶段：{activeStage.stageName}
+                当前阶段：{activeStage.stageName}
               </span>
               {getStatusBadge(activeStage.status)}
             </CardTitle>
@@ -283,7 +284,7 @@ export default function UnifiedPointsConfig() {
         </Card>
       )}
 
-      {/* 周配置列表 */}
+      {/* 周配置列表（分为已配置和过往配置） */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -303,81 +304,146 @@ export default function UnifiedPointsConfig() {
           </div>
         </CardHeader>
         <CardContent>
-          {weeksLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : weeklyRules && weeklyRules.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>周次</TableHead>
-                  <TableHead>时间范围</TableHead>
-                  <TableHead>目标积分</TableHead>
-                  <TableHead>池子比例</TableHead>
-                  <TableHead>实际释放</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {weeklyRules.map((rule) => (
-                  <TableRow key={rule.id}>
-                    <TableCell>第 {rule.weekNumber} 周</TableCell>
-                    <TableCell className="text-sm">
-                      {new Date(rule.startDate).toLocaleDateString()} - {new Date(rule.endDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{rule.weeklyPointsTarget.toLocaleString()}</TableCell>
-                    <TableCell className="text-sm">
-                      G:{rule.pGenesisPercent}% / E:{rule.pEcoPercent}% / T:{rule.pTradePercent}%
-                    </TableCell>
-                    <TableCell>{rule.actualReleased.toLocaleString()}</TableCell>
-                    <TableCell>{getStatusBadge(rule.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        {rule.status === "active" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => pauseWeekMutation.mutate({ id: rule.id })}
-                            disabled={pauseWeekMutation.isPending}
-                          >
-                            <Pause className="h-3 w-3" />
-                          </Button>
-                        )}
-                        {rule.status === "paused" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => resumeWeekMutation.mutate({ id: rule.id })}
-                            disabled={resumeWeekMutation.isPending}
-                          >
-                            <Play className="h-3 w-3" />
-                          </Button>
-                        )}
-                        {rule.status !== "ended" && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => endWeekMutation.mutate({ id: rule.id })}
-                            disabled={endWeekMutation.isPending}
-                          >
-                            <XCircle className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <p className="text-center text-muted-foreground py-8">
-              {selectedStageId ? "暂无周配置，请点击上方按钮创建" : "请先选择一个阶段"}
-            </p>
-          )}
+          <Tabs defaultValue="active" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="active">已配置 ({activeWeeklyRules.length})</TabsTrigger>
+              <TabsTrigger value="historical">
+                <History className="h-4 w-4 mr-2" />
+                过往配置 ({historicalWeeklyRules.length})
+              </TabsTrigger>
+            </TabsList>
+
+            {/* 已配置列表 */}
+            <TabsContent value="active" className="mt-4">
+              {weeksLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : activeWeeklyRules.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>周次</TableHead>
+                      <TableHead>时间范围</TableHead>
+                      <TableHead>目标积分</TableHead>
+                      <TableHead>池子比例</TableHead>
+                      <TableHead>实际释放</TableHead>
+                      <TableHead>状态</TableHead>
+                      <TableHead>操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activeWeeklyRules.map((rule) => (
+                      <TableRow key={rule.id}>
+                        <TableCell>第 {rule.weekNumber} 周</TableCell>
+                        <TableCell className="text-sm">
+                          {new Date(rule.startDate).toLocaleDateString()} - {new Date(rule.endDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>{rule.weeklyPointsTarget.toLocaleString()}</TableCell>
+                        <TableCell className="text-sm">
+                          G:{rule.pGenesisPercent}% / E:{rule.pEcoPercent}% / T:{rule.pTradePercent}%
+                        </TableCell>
+                        <TableCell>{rule.actualReleased.toLocaleString()}</TableCell>
+                        <TableCell>{getStatusBadge(rule.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            {rule.status === "active" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => pauseWeekMutation.mutate({ id: rule.id })}
+                                disabled={pauseWeekMutation.isPending}
+                              >
+                                <Pause className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {rule.status === "paused" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => resumeWeekMutation.mutate({ id: rule.id })}
+                                disabled={resumeWeekMutation.isPending}
+                              >
+                                <Play className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {rule.status !== "ended" && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => endWeekMutation.mutate({ id: rule.id })}
+                                disabled={endWeekMutation.isPending}
+                              >
+                                <XCircle className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  {selectedStageId ? "暂无周配置，请点击上方按钮创建" : "请先选择一个阶段"}
+                </p>
+              )}
+            </TabsContent>
+
+            {/* 过往配置列表 */}
+            <TabsContent value="historical" className="mt-4">
+              {weeksLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : historicalWeeklyRules.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>周次</TableHead>
+                      <TableHead>时间范围</TableHead>
+                      <TableHead>目标积分</TableHead>
+                      <TableHead>池子比例</TableHead>
+                      <TableHead>实际释放</TableHead>
+                      <TableHead>完成率</TableHead>
+                      <TableHead>状态</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {historicalWeeklyRules.map((rule) => {
+                      const completionRate = (rule.actualReleased / rule.weeklyPointsTarget) * 100;
+                      return (
+                        <TableRow key={rule.id}>
+                          <TableCell>第 {rule.weekNumber} 周</TableCell>
+                          <TableCell className="text-sm">
+                            {new Date(rule.startDate).toLocaleDateString()} - {new Date(rule.endDate).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>{rule.weeklyPointsTarget.toLocaleString()}</TableCell>
+                          <TableCell className="text-sm">
+                            G:{rule.pGenesisPercent}% / E:{rule.pEcoPercent}% / T:{rule.pTradePercent}%
+                          </TableCell>
+                          <TableCell>{rule.actualReleased.toLocaleString()}</TableCell>
+                          <TableCell>
+                            <span className={completionRate >= 100 ? "text-green-600" : "text-yellow-600"}>
+                              {completionRate.toFixed(1)}%
+                            </span>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(rule.status)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  暂无历史配置记录
+                </p>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -456,45 +522,24 @@ export default function UnifiedPointsConfig() {
           <DialogHeader>
             <DialogTitle>新建周配置</DialogTitle>
             <DialogDescription>
-              为当前阶段创建新的周释放配置（必须是自然周，从周一开始）
+              为当前阶段创建新的周释放配置（自动计算自然周，从周一00:00到周日24:00）
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="weekNumber">周次 *</Label>
+              <Label htmlFor="weekStartDate">选择周一日期 *</Label>
               <Input
-                id="weekNumber"
-                type="number"
-                value={weekFormData.weekNumber}
-                onChange={(e) => setWeekFormData({ ...weekFormData, weekNumber: parseInt(e.target.value) || 1 })}
-                placeholder="1"
+                id="weekStartDate"
+                type="date"
+                value={weekFormData.weekStartDate}
+                onChange={(e) => setWeekFormData({ ...weekFormData, weekStartDate: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground">
-                该周在阶段中的序号（1, 2, 3...）
+              <p className="text-xs text-red-500">
+                请选择周一的日期，系统会自动计算该自然周的开始和结束时间
               </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="weekStartDate">周开始时间 *</Label>
-                <Input
-                  id="weekStartDate"
-                  type="date"
-                  value={weekFormData.startDate}
-                  onChange={(e) => setWeekFormData({ ...weekFormData, startDate: e.target.value })}
-                />
-                <p className="text-xs text-red-500">必须是周一</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="weekEndDate">周结束时间 *</Label>
-                <Input
-                  id="weekEndDate"
-                  type="date"
-                  value={weekFormData.endDate}
-                  onChange={(e) => setWeekFormData({ ...weekFormData, endDate: e.target.value })}
-                />
-                <p className="text-xs text-muted-foreground">通常是周日</p>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                周次将根据阶段开始日期自动计算
+              </p>
             </div>
 
             <div className="space-y-2">

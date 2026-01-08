@@ -278,7 +278,7 @@ export const weeklyReleaseRules = mysqlTable("weekly_release_rules", {
   pGenesisPercent: varchar("p_genesis_percent", { length: 16 }).notNull(), // P_Genesis占比
   pEcoPercent: varchar("p_eco_percent", { length: 16 }).notNull(), // P_Eco占比
   pTradePercent: varchar("p_trade_percent", { length: 16 }).notNull(), // P_Trade占比
-  status: varchar("status", { length: 16 }).default("active").notNull(), // active, paused, ended
+  status: mysqlEnum("status", ["pending", "active", "paused", "ended"]).default("pending").notNull(), // pending=待生效, active=激活中, paused=已暂停, ended=已结束
   actualReleased: int("actual_released").default(0).notNull(), // 实际已释放积分（实时统计）
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
