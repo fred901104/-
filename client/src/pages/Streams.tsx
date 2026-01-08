@@ -319,15 +319,6 @@ export default function Streams() {
             监控主播直播数据、观众贡献和P_Eco积分计算
           </p>
         </div>
-        <Button
-          onClick={() => {
-            handleExportStreams();
-          }}
-          className="gap-2"
-        >
-          <Download className="h-4 w-4" />
-          导出Excel
-        </Button>
       </div>
 
       {/* 阶段筛选器 */}

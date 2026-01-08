@@ -226,15 +226,6 @@ export default function Trades() {
             监控交易数据、积分计算和风控检测
           </p>
         </div>
-        <Button
-          onClick={() => {
-            handleExport();
-          }}
-          className="gap-2"
-        >
-          <Download className="h-4 w-4" />
-          导出Excel
-        </Button>
       </div>
 
       {/* 阶段筛选器 */}
@@ -338,10 +329,22 @@ export default function Trades() {
       {/* Trades Table */}
       <Card>
         <CardHeader>
-          <CardTitle>交易积分明细</CardTitle>
-          <CardDescription>
-            手续费贡献、持仓时长、有效开单数统计
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>交易积分明细</CardTitle>
+              <CardDescription>
+                手续费贡献、持仓时长、有效开单数统计
+              </CardDescription>
+            </div>
+            <Button
+              onClick={handleExport}
+              className="gap-2"
+              size="sm"
+            >
+              <Download className="h-4 w-4" />
+              导出Excel
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
