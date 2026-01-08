@@ -71,6 +71,13 @@
       "when": 1767847283913,
       "tag": "0009_smart_ender_wiggin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1767849440141,
+      "tag": "0010_late_weapon_omega",
+      "breakpoints": true
     }
   ]
 }

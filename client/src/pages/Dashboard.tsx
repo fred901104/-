@@ -115,7 +115,7 @@ export default function Dashboard() {
         date.setDate(date.getDate() - i);
         data.push({
           label: `${date.getMonth() + 1}/${date.getDate()}`,
-          activeUsers: Math.floor(Math.random() * 800 + 500), // 平台活跃人数
+          participantUsers: Math.floor(Math.random() * 800 + 500), // 平台活跃人数
           participants: Math.floor(Math.random() * 500 + 300),
           streamHours: Math.floor(Math.random() * 200 + 100),
           tippers: Math.floor(Math.random() * 150 + 50),
@@ -133,7 +133,7 @@ export default function Dashboard() {
         date.setDate(date.getDate() - i * 7);
         data.push({
           label: `W${52 - i}`,
-          activeUsers: Math.floor(Math.random() * 3000 + 2000), // 平台活跃人数
+          participantUsers: Math.floor(Math.random() * 3000 + 2000), // 平台活跃人数
           participants: Math.floor(Math.random() * 2000 + 1500),
           streamHours: Math.floor(Math.random() * 1000 + 600),
           tippers: Math.floor(Math.random() * 600 + 300),
@@ -151,7 +151,7 @@ export default function Dashboard() {
         date.setMonth(date.getMonth() - i);
         data.push({
           label: `${date.getMonth() + 1}月`,
-          activeUsers: Math.floor(Math.random() * 12000 + 8000), // 平台活跃人数
+          participantUsers: Math.floor(Math.random() * 12000 + 8000), // 平台活跃人数
           participants: Math.floor(Math.random() * 8000 + 6000),
           streamHours: Math.floor(Math.random() * 4000 + 2500),
           tippers: Math.floor(Math.random() * 2500 + 1500),
@@ -512,7 +512,7 @@ export default function Dashboard() {
               {/* 13个核心指标 */}
               <Line 
                 type="monotone" 
-                dataKey="activeUsers" 
+                dataKey="participantUsers" 
                 stroke="#f97316" 
                 name="平台活跃人数"
                 strokeWidth={2}

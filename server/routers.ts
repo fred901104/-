@@ -616,6 +616,249 @@ export const appRouter = router({
       }),
   }),
   
+  // Stage Budget Management
+  stageBudget: router({
+    // 获取所有阶段配置
+    list: protectedProcedure.query(async () => {
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) return [];
+      const { stageBudgets } = await import("../drizzle/schema");
+      const stages = await db.select().from(stageBudgets);
+      return stages;
+    }),
+
+    // 创建阶段配置
+    create: protectedProcedure
+      .input(
+        z.object({
+          stageName: z.string(),
+          totalBudget: z.number().min(0),
+          startDate: z.date(),
+          endDate: z.date(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const { stageBudgets } = await import("../drizzle/schema");
+        const [stage] = await db.insert(stageBudgets).values({
+          stageName: input.stageName,
+          totalBudget: input.totalBudget,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          status: "active",
+        });
+        return stage;
+      }),
+
+    // 调整预算
+    updateBudget: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          totalBudget: z.number().min(0),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const { stageBudgets } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const { TRPCError } = await import("@trpc/server");
+        
+        // 验证：新预算 >= 已使用预算
+        const [stage] = await db
+          .select()
+          .from(stageBudgets)
+          .where(eq(stageBudgets.id, input.id));
+        
+        if (!stage) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "阶段不存在" });
+        }
+
+        if (input.totalBudget < stage.usedBudget) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `新预算不能小于已使用预算（${stage.usedBudget}）`,
+          });
+        }
+
+        await db
+          .update(stageBudgets)
+          .set({ totalBudget: input.totalBudget })
+          .where(eq(stageBudgets.id, input.id));
+
+        return { success: true };
+      }),
+
+    // 结束阶段
+    end: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const { stageBudgets } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await db
+          .update(stageBudgets)
+          .set({ status: "ended" })
+          .where(eq(stageBudgets.id, input.id));
+        return { success: true };
+      }),
+
+    // 获取预算使用情况
+    getBudgetUsage: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const { stageBudgets } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const { TRPCError } = await import("@trpc/server");
+        
+        const [stage] = await db
+          .select()
+          .from(stageBudgets)
+          .where(eq(stageBudgets.id, input.id));
+
+        if (!stage) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "阶段不存在" });
+        }
+
+        const usageRate = (stage.usedBudget / stage.totalBudget) * 100;
+        const remainingBudget = stage.totalBudget - stage.usedBudget;
+
+        let warningLevel: "normal" | "warning" | "critical" = "normal";
+        if (usageRate >= 95) warningLevel = "critical";
+        else if (usageRate >= 80) warningLevel = "warning";
+
+        return {
+          ...stage,
+          usageRate,
+          remainingBudget,
+          warningLevel,
+        };
+      }),
+  }),
+
+  // Weekly Release Rules Management
+  weeklyReleaseRules: router({
+    // 获取所有周配置
+    list: protectedProcedure
+      .input(z.object({ stageId: z.number().optional() }))
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return [];
+        const { weeklyReleaseRules } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        if (input.stageId) {
+          return await db.select().from(weeklyReleaseRules)
+            .where(eq(weeklyReleaseRules.stageId, input.stageId));
+        }
+        return await db.select().from(weeklyReleaseRules);
+      }),
+
+    // 创建周配置
+    create: protectedProcedure
+      .input(
+        z.object({
+          stageId: z.number(),
+          weekNumber: z.number(),
+          startDate: z.date(),
+          endDate: z.date(),
+          weeklyPointsTarget: z.number().min(0),
+          pGenesisPercent: z.string(),
+          pEcoPercent: z.string(),
+          pTradePercent: z.string(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const { weeklyReleaseRules, stageBudgets } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const { TRPCError } = await import("@trpc/server");
+
+        // 验证阶段存在
+        const [stage] = await db.select().from(stageBudgets)
+          .where(eq(stageBudgets.id, input.stageId));
+        if (!stage) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "阶段不存在" });
+        }
+
+        // TODO: 验证时间范围不重叠
+
+        const [rule] = await db.insert(weeklyReleaseRules).values({
+          stageId: input.stageId,
+          weekNumber: input.weekNumber,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          weeklyPointsTarget: input.weeklyPointsTarget,
+          pGenesisPercent: input.pGenesisPercent,
+          pEcoPercent: input.pEcoPercent,
+          pTradePercent: input.pTradePercent,
+          status: "active",
+        });
+        return rule;
+      }),
+
+    // 暂停周配置
+    pause: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const { weeklyReleaseRules } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        await db.update(weeklyReleaseRules)
+          .set({ status: "paused" })
+          .where(eq(weeklyReleaseRules.id, input.id));
+        return { success: true };
+      }),
+
+    // 恢复周配置
+    resume: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const { weeklyReleaseRules } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        await db.update(weeklyReleaseRules)
+          .set({ status: "active" })
+          .where(eq(weeklyReleaseRules.id, input.id));
+        return { success: true };
+      }),
+
+    // 结束周配置
+    end: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const { weeklyReleaseRules } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        await db.update(weeklyReleaseRules)
+          .set({ status: "ended" })
+          .where(eq(weeklyReleaseRules.id, input.id));
+        return { success: true };
+      }),
+  }),
+
   // Points Config
   pointsConfig: router({
     list: protectedProcedure.query(async () => {

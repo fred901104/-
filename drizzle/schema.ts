@@ -211,13 +211,34 @@ export const featuredContents = mysqlTable("featured_contents", {
 
 export type FeaturedContent = typeof featuredContents.$inferSelect;
 export type InsertFeaturedContent = typeof featuredContents.$inferInsert;
+
 /**
- * 积分配置表 - 管理每个阶段的积分释放规则
+ * 阶段总预算表 - 管理各阶段的积分总预算
+ */
+export const stageBudgets = mysqlTable("stage_budgets", {
+  id: int("id").autoincrement().primaryKey(),
+  stageName: varchar("stage_name", { length: 64 }).notNull().unique(), // 阶段标识（S0, S1, S2...）
+  totalBudget: int("total_budget").notNull(), // 阶段总预算积分
+  usedBudget: int("used_budget").default(0).notNull(), // 已使用预算（实时统计）
+  startDate: timestamp("start_date").notNull(), // 阶段开始时间
+  endDate: timestamp("end_date").notNull(), // 阶段结束时间
+  status: varchar("status", { length: 16 }).default("active").notNull(), // active, ended
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type StageBudget = typeof stageBudgets.$inferSelect;
+export type InsertStageBudget = typeof stageBudgets.$inferInsert;
+
+/**
+ * 积分配置表 - 管理积分发放规则（保留以便向后兼容）
  */
 export const pointsConfigs = mysqlTable("points_configs", {
   id: int("id").autoincrement().primaryKey(),
-  phase: varchar("phase", { length: 32 }).notNull(), // S0, S1, S2
-  totalBudget: int("total_budget").notNull(), // 该阶段总预算积分
+  phase: varchar("phase", { length: 64 }).notNull(), // 阶段标识（S0, S1, S2...）
+  
+  // 预算管理
+  totalBudget: int("total_budget").default(0).notNull(), // 阶段总预算积分
   weeklyPointsTarget: int("weekly_points_target").notNull(), // 该阶段周期预计释放积分
   
   // 时间管理
@@ -245,7 +266,29 @@ export type PointsConfig = typeof pointsConfigs.$inferSelect;
 export type InsertPointsConfig = typeof pointsConfigs.$inferInsert;
 
 /**
- * 周配置表 - 管理每周的积分配置
+ * 周释放配置表 - 管理每周的积分释放规则
+ */
+export const weeklyReleaseRules = mysqlTable("weekly_release_rules", {
+  id: int("id").autoincrement().primaryKey(),
+  stageId: int("stage_id").notNull(), // 关联的阶段ID
+  weekNumber: int("week_number").notNull(), // 周次（1, 2, 3...）
+  startDate: timestamp("start_date").notNull(), // 该周开始时间（周一00:00）
+  endDate: timestamp("end_date").notNull(), // 该周结束时间（周日23:59）
+  weeklyPointsTarget: int("weekly_points_target").notNull(), // 该周目标积分
+  pGenesisPercent: varchar("p_genesis_percent", { length: 16 }).notNull(), // P_Genesis占比
+  pEcoPercent: varchar("p_eco_percent", { length: 16 }).notNull(), // P_Eco占比
+  pTradePercent: varchar("p_trade_percent", { length: 16 }).notNull(), // P_Trade占比
+  status: varchar("status", { length: 16 }).default("active").notNull(), // active, paused, ended
+  actualReleased: int("actual_released").default(0).notNull(), // 实际已释放积分（实时统计）
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type WeeklyReleaseRule = typeof weeklyReleaseRules.$inferSelect;
+export type InsertWeeklyReleaseRule = typeof weeklyReleaseRules.$inferInsert;
+
+/**
+ * 周配置表 - 管理每周的积分配置（保留以便向后兼容）
  */
 export const weeklyConfigs = mysqlTable("weekly_configs", {
   id: int("id").autoincrement().primaryKey(),
