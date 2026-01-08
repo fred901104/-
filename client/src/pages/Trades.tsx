@@ -9,11 +9,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FilterBar, FilterConfig, FilterValues } from "@/components/FilterBar";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead, SortDirection } from "@/components/SortableTableHead";
-import { AlertCircle, CheckCircle, Lock, Unlock, TrendingUp, DollarSign, Clock, AlertTriangle, Download } from "lucide-react";
+import { AlertCircle, CheckCircle, Lock, Unlock, TrendingUp, DollarSign, Clock, AlertTriangle, Download, BarChart3 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserPointsTable } from "@/components/UserPointsTable";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportToExcel, formatDateTime } from "@/lib/exportToExcel";
 import { toast } from "sonner";
 
 export default function Trades() {
+  // Tab状态
+  const [activeTab, setActiveTab] = useState("trades");
+  
   // 阶段筛选状态
   const [selectedStageId, setSelectedStageId] = useState<number | undefined>(undefined);
   
@@ -78,6 +85,9 @@ export default function Trades() {
   const { data: trades, isLoading } = trpc.trades.list.useQuery(
     selectedStageId ? { stageId: selectedStageId } : undefined
   );
+  
+  // 获取用户积分统计
+  const { data: userPoints, isLoading: isLoadingUserPoints } = trpc.trades.userPoints.useQuery();
   const freezeMutation = trpc.trades.freeze.useMutation();
 
   const filterConfig: FilterConfig = {
@@ -249,6 +259,21 @@ export default function Trades() {
         onChange={setFilterValues}
       />
 
+      {/* Tabs for Trades/UserPoints */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full max-w-xl grid-cols-2">
+          <TabsTrigger value="trades">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            交易积分明细
+          </TabsTrigger>
+          <TabsTrigger value="userPoints">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            用户积分获取表
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Trades Tab */}
+        <TabsContent value="trades" className="space-y-4">
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
@@ -557,6 +582,17 @@ export default function Trades() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+        
+        {/* User Points Tab */}
+        <TabsContent value="userPoints">
+          <UserPointsTable 
+            data={userPoints || []} 
+            poolName="P_Trade 交易池" 
+            isLoading={isLoadingUserPoints}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Freeze Dialog */}
       <Dialog open={freezeDialogOpen} onOpenChange={setFreezeDialogOpen}>

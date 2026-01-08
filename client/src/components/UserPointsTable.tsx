@@ -18,8 +18,8 @@ interface UserPointsData {
   currentPeriodPoints: number;
   totalPoints: number;
   stagePoints: Record<string, number>;
-  bugCount: number;
-  suggestionCount: number;
+  bugCount?: number;
+  suggestionCount?: number;
   bugTickets?: any[];
   suggestionTickets?: any[];
 }
@@ -65,11 +65,11 @@ export function UserPointsTable({ data, poolName, isLoading }: UserPointsTablePr
         aValue = a.totalPoints;
         bValue = b.totalPoints;
       } else if (sortField === 'bugCount') {
-        aValue = a.bugCount;
-        bValue = b.bugCount;
+        aValue = a.bugCount || 0;
+        bValue = b.bugCount || 0;
       } else if (sortField === 'suggestionCount') {
-        aValue = a.suggestionCount;
-        bValue = b.suggestionCount;
+        aValue = a.suggestionCount || 0;
+        bValue = b.suggestionCount || 0;
       } else {
         // 阶段积分排序
         aValue = a.stagePoints[sortField] || 0;
@@ -239,7 +239,7 @@ export function UserPointsTable({ data, poolName, isLoading }: UserPointsTablePr
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {user.bugCount > 0 ? (
+                        {(user.bugCount || 0) > 0 ? (
                           <Button
                             variant="link"
                             className="p-0 h-auto font-mono text-red-600"
@@ -252,7 +252,7 @@ export function UserPointsTable({ data, poolName, isLoading }: UserPointsTablePr
                         )}
                       </TableCell>
                       <TableCell>
-                        {user.suggestionCount > 0 ? (
+                        {(user.suggestionCount || 0) > 0 ? (
                           <Button
                             variant="link"
                             className="p-0 h-auto font-mono text-blue-600"

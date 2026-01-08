@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, CheckCircle, Clock, XCircle, FileText, Download } from "lucide-react";
 import { exportToExcel, formatDateTime } from "@/lib/exportToExcel";
 import { useState, useMemo, useEffect } from "react";
@@ -37,7 +38,10 @@ const statusLabels = {
 };
 
 export default function Tickets() {
-  // 阶段筛选状态
+  // Tab状态
+  const [activeTab, setActiveTab] = useState("tickets");
+  
+  // 阶段筛选状态（全局）
   const [selectedStageId, setSelectedStageId] = useState<number | undefined>(undefined);
   
   // 获取阶段列表
@@ -85,8 +89,12 @@ export default function Tickets() {
   };
   const [searchQuery, setSearchQuery] = useState("");
 
-  // 导出功能
-  const handleExport = () => {
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // 导出工单表功能
+  const handleExportTickets = () => {
     const exportData = sortedTickets.map((item, index) => {
       const date = new Date(item.ticket.createdAt);
       const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
@@ -98,106 +106,124 @@ export default function Tickets() {
         '创建时间': formatDateTime(item.ticket.createdAt),
         '订单号': orderNo,
         'UID': item.user?.openId || '-',
-        '提交人': item.user?.name || '-',
-        '工单类型': typeLabels[item.ticket.type as keyof typeof typeLabels].label,
-        'BUG等级': item.ticket.priority ? priorityLabels[item.ticket.priority as keyof typeof priorityLabels].label : '-',
+        '用户名': item.user?.name || '-',
+        '内容': typeLabels[item.ticket.type as keyof typeof typeLabels]?.label || item.ticket.type,
+        '工单号': item.ticket.title,
+        'BUG等级': item.ticket.priority ? priorityLabels[item.ticket.priority as keyof typeof priorityLabels]?.label : '-',
+        '状态': statusLabels[item.ticket.status as keyof typeof statusLabels]?.label,
         '释放积分': item.ticket.finalScore || 0,
-        '状态': statusLabels[item.ticket.status as keyof typeof statusLabels].label,
-        '工单内容': item.ticket.content,
+        '阶段': item.stage?.stageName || '-',
       };
     });
-    exportToExcel(exportData, '工单管理', '工单列表');
-    toast.success(`已导出 ${exportData.length} 条工单数据`);
+    
+    exportToExcel(exportData, `P_Genesis工单列表_${new Date().toLocaleDateString()}`);
+    toast.success("工单列表已导出");
   };
-  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: "", end: "" });
-  
-  // 分页状态
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  
-  // 筛选逻辑
-  const filteredTickets = tickets?.filter(item => {
-    const ticket = item.ticket;
-    if (filterType !== "all" && ticket.type !== filterType) return false;
-    if (filterStatus !== "all" && ticket.status !== filterStatus) return false;
-    if (filterPriority !== "all" && ticket.priority !== filterPriority) return false;
+
+  useEffect(() => {
+    if (priority) {
+      setFinalScore(priorityLabels[priority].score);
+    }
+  }, [priority]);
+
+  // 筛选和排序逻辑
+  const filteredTickets = useMemo(() => {
+    if (!tickets) return [];
     
-    // 日期筛选
-    if (dateRange.start || dateRange.end) {
-      const ticketDate = new Date(ticket.createdAt);
-      if (dateRange.start && ticketDate < new Date(dateRange.start)) return false;
-      if (dateRange.end) {
-        const endDate = new Date(dateRange.end);
-        endDate.setHours(23, 59, 59, 999); // 包含结束日当天
-        if (ticketDate > endDate) return false;
+    return tickets.filter((item) => {
+      const ticket = item.ticket;
+      
+      // 类型筛选
+      if (filterType !== "all" && ticket.type !== filterType) {
+        return false;
       }
-    }
-    
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        ticket.title?.toLowerCase().includes(query) ||
-        ticket.id?.toString().includes(query) ||
-        ticket.userId?.toString().includes(query)
-      );
-    }
-    return true;
-  }) || [];
-  
-  // 排序逻辑
+      
+      // 状态筛选
+      if (filterStatus !== "all" && ticket.status !== filterStatus) {
+        return false;
+      }
+      
+      // 等级筛选
+      if (filterPriority !== "all" && ticket.priority !== filterPriority) {
+        return false;
+      }
+      
+      // 搜索筛选
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesTitle = ticket.title?.toLowerCase().includes(query);
+        const matchesContent = ticket.content?.toLowerCase().includes(query);
+        const matchesUid = item.user?.openId?.toLowerCase().includes(query);
+        const matchesUserName = item.user?.name?.toLowerCase().includes(query);
+        
+        if (!matchesTitle && !matchesContent && !matchesUid && !matchesUserName) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [tickets, filterType, filterStatus, filterPriority, searchQuery]);
+
   const sortedTickets = useMemo(() => {
     if (!sortKey || !sortDirection) return filteredTickets;
     
-    return [...filteredTickets].sort((a, b) => {
-      const ticket_a = a.ticket;
-      const ticket_b = b.ticket;
-      let compareValue = 0;
+    const sorted = [...filteredTickets].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
       
       switch (sortKey) {
-        case "priority":
-          const priorityOrder = { p0: 0, p1: 1, p2: 2, p3: 3 };
-          compareValue = priorityOrder[ticket_a.priority as keyof typeof priorityOrder] - priorityOrder[ticket_b.priority as keyof typeof priorityOrder];
+        case "createdAt":
+          aValue = new Date(a.ticket.createdAt).getTime();
+          bValue = new Date(b.ticket.createdAt).getTime();
           break;
         case "finalScore":
-          compareValue = (ticket_a.finalScore || 0) - (ticket_b.finalScore || 0);
+          aValue = a.ticket.finalScore || 0;
+          bValue = b.ticket.finalScore || 0;
           break;
-        case "createdAt":
-          compareValue = new Date(ticket_a.createdAt).getTime() - new Date(ticket_b.createdAt).getTime();
+        case "priority":
+          const priorityOrder = { p0: 4, p1: 3, p2: 2, p3: 1 };
+          aValue = priorityOrder[a.ticket.priority as keyof typeof priorityOrder] || 0;
+          bValue = priorityOrder[b.ticket.priority as keyof typeof priorityOrder] || 0;
+          break;
+        case "status":
+          const statusOrder = { pending: 3, approved: 2, rejected: 1 };
+          aValue = statusOrder[a.ticket.status as keyof typeof statusOrder] || 0;
+          bValue = statusOrder[b.ticket.status as keyof typeof statusOrder] || 0;
           break;
         default:
           return 0;
       }
       
-      return sortDirection === "asc" ? compareValue : -compareValue;
+      if (sortDirection === "asc") {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
     });
+    
+    return sorted;
   }, [filteredTickets, sortKey, sortDirection]);
-  
+
   // 分页逻辑
-  const paginatedTickets = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return sortedTickets.slice(startIndex, endIndex);
-  }, [sortedTickets, currentPage, pageSize]);
-  
   const totalPages = Math.ceil(sortedTickets.length / pageSize);
-  
-  // 当筛选条件改变时重置到第一页
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filterType, filterStatus, filterPriority, searchQuery, dateRange]);
+  const paginatedTickets = sortedTickets.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const handleReview = async (status: "approved" | "rejected") => {
     if (!selectedTicket) return;
-
+    
     try {
       await reviewMutation.mutateAsync({
         id: selectedTicket.ticket.id,
+        status,
         priority,
         finalScore,
-        status,
         reviewNote,
       });
-
+      
       toast.success(status === "approved" ? "工单已通过审核" : "工单已驳回");
       setReviewDialogOpen(false);
       refetch();
@@ -220,23 +246,41 @@ export default function Tickets() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">P_Genesis 工单管理</h1>
-          <p className="text-muted-foreground mt-2">
-            审核用户提交的Bug、建议和必要信息，进行定级打分并发放积分
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            handleExport();
-          }}
-          className="gap-2"
-        >
-          <Download className="h-4 w-4" />
-          导出Excel
-        </Button>
+      {/* 页面标题 */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">P_Genesis 创世池</h1>
+        <p className="text-muted-foreground mt-2">
+          审核用户提交的Bug、建议和必要信息，进行定级打分并发放积分
+        </p>
       </div>
+
+      {/* 全局阶段筛选器 */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <Label className="text-base font-semibold">阶段筛选：</Label>
+            <Select 
+              value={selectedStageId?.toString() || "all"} 
+              onValueChange={(value) => setSelectedStageId(value === "all" ? undefined : parseInt(value))}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="全部阶段" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部阶段</SelectItem>
+                {stages?.map((stage) => (
+                  <SelectItem key={stage.id} value={stage.id.toString()}>
+                    {stage.stageName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">
+              筛选后将同时影响反馈工单表和用户积分获取表
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -274,307 +318,265 @@ export default function Tickets() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>筛选和搜索</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div className="space-y-2">
-              <Label>阶段筛选</Label>
-              <Select 
-                value={selectedStageId?.toString() || "all"} 
-                onValueChange={(value) => setSelectedStageId(value === "all" ? undefined : parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="全部阶段" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部阶段</SelectItem>
-                  {stages?.map((stage) => (
-                    <SelectItem key={stage.id} value={stage.id.toString()}>
-                      {stage.stageName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>工单类型</Label>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="全部类型" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部类型</SelectItem>
-                  <SelectItem value="bug">Bug</SelectItem>
-                  <SelectItem value="suggestion">建议</SelectItem>
-                  <SelectItem value="info">必要信息</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>工单状态</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="全部状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="pending">待审核</SelectItem>
-                  <SelectItem value="approved">已通过</SelectItem>
-                  <SelectItem value="rejected">已驳回</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>优先级</Label>
-              <Select value={filterPriority} onValueChange={setFilterPriority}>
-                <SelectTrigger>
-                  <SelectValue placeholder="全部优先级" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部优先级</SelectItem>
-                  <SelectItem value="p0">P0</SelectItem>
-                  <SelectItem value="p1">P1</SelectItem>
-                  <SelectItem value="p2">P2</SelectItem>
-                  <SelectItem value="p3">P3</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>日期范围</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="date"
-                  value={dateRange.start}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                  placeholder="开始日期"
-                />
-                <span className="flex items-center">至</span>
-                <Input
-                  type="date"
-                  value={dateRange.end}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                  placeholder="结束日期"
-                />
+      {/* Tab切换 */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="tickets">反馈工单表</TabsTrigger>
+          <TabsTrigger value="userPoints">用户积分获取表</TabsTrigger>
+        </TabsList>
+
+        {/* Tab 1: 反馈工单表 */}
+        <TabsContent value="tickets" className="space-y-4">
+          {/* Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle>筛选和搜索</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="space-y-2">
+                  <Label>内容类型</Label>
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部</SelectItem>
+                      <SelectItem value="bug">Bug</SelectItem>
+                      <SelectItem value="suggestion">建议</SelectItem>
+                      <SelectItem value="info">必要信息</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>状态</Label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部</SelectItem>
+                      <SelectItem value="pending">待审核</SelectItem>
+                      <SelectItem value="approved">已通过</SelectItem>
+                      <SelectItem value="rejected">已驳回</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>BUG等级</Label>
+                  <Select value={filterPriority} onValueChange={setFilterPriority}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部</SelectItem>
+                      <SelectItem value="p0">P0</SelectItem>
+                      <SelectItem value="p1">P1</SelectItem>
+                      <SelectItem value="p2">P2</SelectItem>
+                      <SelectItem value="p3">P3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label>搜索</Label>
+                  <Input
+                    placeholder="搜索工单号、UID、用户名、内容..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>搜索</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="工单号/UID/提交人"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+            </CardContent>
+          </Card>
+
+          {/* Tickets Table */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>反馈工单列表</CardTitle>
+                  <CardDescription>共 {filteredTickets.length} 条记录</CardDescription>
+                </div>
                 <Button
-                  variant="outline"
-                  onClick={() => {
-                    setFilterType("all");
-                    setFilterStatus("all");
-                    setFilterPriority("all");
-                    setSearchQuery("");
-                    setDateRange({ start: "", end: "" });
-                  }}
+                  onClick={handleExportTickets}
+                  className="gap-2"
+                  size="sm"
                 >
-                  重置
+                  <Download className="h-4 w-4" />
+                  导出Excel
                 </Button>
               </div>
-            </div>
-          </div>
-          
-          <div className="mt-4 text-sm text-muted-foreground">
-            显示 {filteredTickets.length} / {tickets?.length || 0} 条工单
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tickets Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>反馈工单列表</CardTitle>
-          <CardDescription>点击“审核”按钮进行定级打分</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[60px]">序号</TableHead>
-                    <TableHead>创建时间</TableHead>
-                    <TableHead>阶段</TableHead>
-                    <TableHead>订单号</TableHead>
-                    <TableHead>UID</TableHead>
-                  <TableHead>内容</TableHead>
-                  <TableHead>工单号</TableHead>
-                  <TableHead>提交人</TableHead>
-                  <SortableTableHead 
-                    sortKey="priority" 
-                    currentSortKey={sortKey} 
-                    currentSortDirection={sortDirection} 
-                    onSort={handleSort}
-                  >
-                    BUG等级
-                  </SortableTableHead>
-                  <TableHead>状态</TableHead>
-                  <SortableTableHead 
-                    sortKey="finalScore" 
-                    currentSortKey={sortKey} 
-                    currentSortDirection={sortDirection} 
-                    onSort={handleSort}
-                  >
-                    释放积分
-                  </SortableTableHead>
-                  <SortableTableHead 
-                    sortKey="createdAt" 
-                    currentSortKey={sortKey} 
-                    currentSortDirection={sortDirection} 
-                    onSort={handleSort}
-                  >
-                    提交时间
-                  </SortableTableHead>
-                  <TableHead>操作人</TableHead>
-                  <TableHead>操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedTickets?.map((item, index) => {
-                  const globalIndex = sortedTickets.length - ((currentPage - 1) * pageSize + index);
-                  const ticket = item.ticket;
-                  const user = item.user;
-                  const stage = item.stage;
-                  const TypeIcon = typeLabels[ticket.type as keyof typeof typeLabels]?.icon;
-                  const StatusIcon = statusLabels[ticket.status as keyof typeof statusLabels]?.icon;
-
-                  return (
-                    <TableRow key={ticket.id}>
-                      <TableCell className="text-center text-muted-foreground">{globalIndex}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(ticket.createdAt).toLocaleString('zh-CN', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: false
-                        })}
-                      </TableCell>
-                      <TableCell>
-                        {stage ? (
-                          <Badge variant="outline">{stage.stageName}</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">未分配</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {(() => {
-                          const date = new Date(ticket.createdAt);
-                          const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-                          const seqNum = String(ticket.id).padStart(6, '0');
-                          return `${dateStr}-GEN-${seqNum}`;
-                        })()}
-                      </TableCell>
-                      <TableCell className="font-medium">#{ticket.id}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {TypeIcon && <TypeIcon className={`h-4 w-4 ${typeLabels[ticket.type as keyof typeof typeLabels]?.color}`} />}
-                          {typeLabels[ticket.type as keyof typeof typeLabels]?.label}
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">{ticket.title}</TableCell>
-                      <TableCell>{user?.name || "未知"}</TableCell>
-                      <TableCell>
-                        {ticket.priority ? (
-                          <Badge variant={priorityLabels[ticket.priority as keyof typeof priorityLabels]?.color}>
-                            {priorityLabels[ticket.priority as keyof typeof priorityLabels]?.label}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {StatusIcon && <StatusIcon className={`h-4 w-4 ${statusLabels[ticket.status as keyof typeof statusLabels]?.color}`} />}
-                          {statusLabels[ticket.status as keyof typeof statusLabels]?.label}
-                        </div>
-                      </TableCell>
-                      <TableCell>{ticket.finalScore || 0}</TableCell>
-                      <TableCell>{new Date(ticket.createdAt).toLocaleDateString("zh-CN")}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1 text-xs">
-                          {ticket.createdBy && (
-                            <div>
-                              <span className="text-muted-foreground">创建:</span> 用户ID: {ticket.createdBy}
-                            </div>
-                          )}
-                          {ticket.reviewedBy && (
-                            <div>
-                              <span className="text-muted-foreground">审核:</span> 用户ID: {ticket.reviewedBy}
-                            </div>
-                          )}
-                          {ticket.modifiedBy && (
-                            <div>
-                              <span className="text-muted-foreground">修改:</span> 用户ID: {ticket.modifiedBy}
-                            </div>
-                          )}
-                          {!ticket.createdBy && !ticket.reviewedBy && !ticket.modifiedBy && (
-                            <span className="text-muted-foreground">无</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          {ticket.status === "pending" && (
-                            <Button size="sm" onClick={() => openReviewDialog(item)}>
-                              审核
-                            </Button>
-                          )}
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => {
-                              toast.info("冻结功能开发中");
-                            }}
-                          >
-                            冻结
-                          </Button>
-                        </div>
-                      </TableCell>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[80px]">序号</TableHead>
+                      <SortableTableHead
+                        sortKey="createdAt"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={handleSort}
+                      >
+                        创建时间
+                      </SortableTableHead>
+                      <TableHead>订单号</TableHead>
+                      <TableHead>UID</TableHead>
+                      <TableHead>用户名</TableHead>
+                      <TableHead>内容</TableHead>
+                      <TableHead>工单号</TableHead>
+                      <SortableTableHead
+                        sortKey="priority"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={handleSort}
+                      >
+                        BUG等级（可修改）
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="status"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={handleSort}
+                      >
+                        状态
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="finalScore"
+                        currentSortKey={sortKey}
+                        currentSortDirection={sortDirection}
+                        onSort={handleSort}
+                      >
+                        释放积分
+                      </SortableTableHead>
+                      <TableHead>阶段</TableHead>
+                      <TableHead>操作人</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-          {filteredTickets.length > 0 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              pageSize={pageSize}
-              totalItems={filteredTickets.length}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={(newSize) => {
-                setPageSize(newSize);
-                setCurrentPage(1);
-              }}
-            />
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedTickets.map((item, index) => {
+                      const ticket = item.ticket;
+                      const user = item.user;
+                      const stage = item.stage;
+                      const TypeIcon = typeLabels[ticket.type as keyof typeof typeLabels]?.icon;
+                      const StatusIcon = statusLabels[ticket.status as keyof typeof statusLabels]?.icon;
+                      
+                      const date = new Date(ticket.createdAt);
+                      const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+                      const seqNum = String(ticket.id).padStart(6, '0');
+                      const orderNo = `${dateStr}-GEN-${seqNum}`;
+                      
+                      return (
+                        <TableRow key={ticket.id}>
+                          <TableCell>{sortedTickets.length - ((currentPage - 1) * pageSize + index)}</TableCell>
+                          <TableCell>{new Date(ticket.createdAt).toLocaleDateString("zh-CN")}</TableCell>
+                          <TableCell className="font-mono text-xs">{orderNo}</TableCell>
+                          <TableCell>{user?.openId || "-"}</TableCell>
+                          <TableCell>{user?.name || "-"}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {TypeIcon && <TypeIcon className={`h-4 w-4 ${typeLabels[ticket.type as keyof typeof typeLabels]?.color}`} />}
+                              {typeLabels[ticket.type as keyof typeof typeLabels]?.label}
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-[200px] truncate">{ticket.title}</TableCell>
+                          <TableCell>
+                            {ticket.priority ? (
+                              <Badge variant={priorityLabels[ticket.priority as keyof typeof priorityLabels]?.color}>
+                                {priorityLabels[ticket.priority as keyof typeof priorityLabels]?.label}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {StatusIcon && <StatusIcon className={`h-4 w-4 ${statusLabels[ticket.status as keyof typeof statusLabels]?.color}`} />}
+                              {statusLabels[ticket.status as keyof typeof statusLabels]?.label}
+                            </div>
+                          </TableCell>
+                          <TableCell>{ticket.finalScore || 0}</TableCell>
+                          <TableCell>
+                            {stage ? (
+                              <Badge variant="outline">{stage.stageName}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1 text-xs">
+                              {ticket.createdBy && (
+                                <div>
+                                  <span className="text-muted-foreground">创建:</span> 用户ID: {ticket.createdBy}
+                                </div>
+                              )}
+                              {ticket.reviewedBy && (
+                                <div>
+                                  <span className="text-muted-foreground">审核:</span> 用户ID: {ticket.reviewedBy}
+                                </div>
+                              )}
+                              {ticket.modifiedBy && (
+                                <div>
+                                  <span className="text-muted-foreground">修改:</span> 用户ID: {ticket.modifiedBy}
+                                </div>
+                              )}
+                              {!ticket.createdBy && !ticket.reviewedBy && !ticket.modifiedBy && (
+                                <span className="text-muted-foreground">无</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              {ticket.status === "pending" && (
+                                <Button size="sm" onClick={() => openReviewDialog(item)}>
+                                  审核
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+              {filteredTickets.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  pageSize={pageSize}
+                  totalItems={filteredTickets.length}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={(newSize) => {
+                    setPageSize(newSize);
+                    setCurrentPage(1);
+                  }}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab 2: 用户积分获取表 */}
+        <TabsContent value="userPoints">
+          <UserPointsTable 
+            data={userPoints || []} 
+            poolName="P_Genesis 创世池" 
+            isLoading={isLoadingUserPoints}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Review Dialog */}
       <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
@@ -598,46 +600,63 @@ export default function Tickets() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="priority">优先级定级</Label>
-                <Select value={priority} onValueChange={(v: any) => {
-                  setPriority(v);
-                  setFinalScore(priorityLabels[v as keyof typeof priorityLabels]?.score || 100);
-                }}>
-                  <SelectTrigger id="priority">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>提交用户</Label>
+                  <div className="p-2 bg-muted rounded">
+                    <p className="text-sm">{selectedTicket.user?.name || "未知用户"}</p>
+                    <p className="text-xs text-muted-foreground">{selectedTicket.user?.openId}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>工单类型</Label>
+                  <div className="p-2 bg-muted rounded">
+                    <p className="text-sm">
+                      {typeLabels[selectedTicket.ticket.type as keyof typeof typeLabels]?.label}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>BUG等级</Label>
+                <Select value={priority} onValueChange={(value: any) => setPriority(value)}>
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="p0">P0 - 严重Bug (*50倍) - 基础分500</SelectItem>
-                    <SelectItem value="p1">P1 - 重要Bug (*10倍) - 基础分100</SelectItem>
-                    <SelectItem value="p2">P2 - 一般Bug (*5倍) - 基础分50</SelectItem>
-                    <SelectItem value="p3">P3 - 轻微Bug (*2倍) - 基础分20</SelectItem>
+                    <SelectItem value="p0">P0 - 致命Bug (*50)</SelectItem>
+                    <SelectItem value="p1">P1 - 严重Bug (*10)</SelectItem>
+                    <SelectItem value="p2">P2 - 一般Bug (*5)</SelectItem>
+                    <SelectItem value="p3">P3 - 轻微Bug (*2)</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="finalScore">最终积分（可手动调整）</Label>
-                <Input
-                  id="finalScore"
-                  type="number"
-                  value={finalScore}
-                  onChange={(e) => setFinalScore(Number(e.target.value))}
-                  className="mt-2"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  基础分：{priorityLabels[priority]?.score}，可根据实际情况微调
+                <p className="text-xs text-muted-foreground">
+                  系统建议分数：{priorityLabels[priority].score} 积分
                 </p>
               </div>
 
-              <div>
-                <Label htmlFor="reviewNote">审核备注（可选）</Label>
+              <div className="space-y-2">
+                <Label>最终积分</Label>
+                <Input
+                  type="number"
+                  value={finalScore}
+                  onChange={(e) => setFinalScore(Number(e.target.value))}
+                  placeholder="输入最终积分"
+                />
+                <p className="text-xs text-muted-foreground">
+                  可以根据实际情况调整系统建议分数
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>审核备注（可选）</Label>
                 <Textarea
-                  id="reviewNote"
                   value={reviewNote}
                   onChange={(e) => setReviewNote(e.target.value)}
-                  placeholder="记录审核理由或其他说明..."
-                  className="mt-2"
+                  placeholder="填写审核意见或备注信息..."
+                  rows={3}
                 />
               </div>
             </div>
@@ -656,13 +675,6 @@ export default function Tickets() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* 用户积分获取表 */}
-      <UserPointsTable 
-        data={userPoints || []} 
-        poolName="P_Genesis 创世池" 
-        isLoading={isLoadingUserPoints}
-      />
     </div>
   );
 }

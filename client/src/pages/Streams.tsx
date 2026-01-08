@@ -14,8 +14,14 @@ import { Radio, Users, Clock, MessageSquare, DollarSign, Star, TrendingUp, Activ
 import { exportToExcel, formatDateTime } from "@/lib/exportToExcel";
 import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { UserPointsTable } from "@/components/UserPointsTable";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Streams() {
+  // Tab状态
+  const [activeTab, setActiveTab] = useState("creator");
+  
   // 阶段筛选状态
   const [selectedStageId, setSelectedStageId] = useState<number | undefined>(undefined);
   
@@ -74,6 +80,9 @@ export default function Streams() {
   const { data: streams, isLoading } = trpc.streams.list.useQuery(
     selectedStageId ? { stageId: selectedStageId } : undefined
   );
+  
+  // 获取用户积分统计
+  const { data: userPoints, isLoading: isLoadingUserPoints } = trpc.streams.userPoints.useQuery();
 
   // 导出主播贡献功能
   const handleExportStreams = () => {
@@ -338,16 +347,20 @@ export default function Streams() {
         onChange={setFilterValues}
       />
 
-      {/* Tabs for Creator/Audience */}
-      <Tabs defaultValue="creator" className="space-y-4">
-        <TabsList>
+      {/* Tabs for Creator/Audience/UserPoints */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3">
           <TabsTrigger value="creator">
             <Radio className="h-4 w-4 mr-2" />
-            主播贡献 (Score_Creator)
+            主播贡献
           </TabsTrigger>
           <TabsTrigger value="audience">
             <Users className="h-4 w-4 mr-2" />
-            观众贡献 (Score_Audience)
+            观众贡献
+          </TabsTrigger>
+          <TabsTrigger value="userPoints">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            用户积分获取表
           </TabsTrigger>
         </TabsList>
 
@@ -745,6 +758,15 @@ export default function Streams() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        {/* User Points Tab */}
+        <TabsContent value="userPoints">
+          <UserPointsTable 
+            data={userPoints || []} 
+            poolName="P_Eco 生态池" 
+            isLoading={isLoadingUserPoints}
+          />
         </TabsContent>
       </Tabs>
 
