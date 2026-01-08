@@ -107,7 +107,17 @@ export default function Users() {
       '黑名单状态': user.isBlacklisted === 1 ? '已拉黑' : '正常',
       '注册时间': formatDateTime(user.createdAt),
     }));
-    exportToExcel(exportData, '用户积分管理', '用户列表');
+    
+    // 构建筛选条件摘要
+    const filterSummary = {
+      exportTime: formatDateTime(new Date()),
+      '角色筛选': roleFilter === 'all' ? '全部角色' : (roleFilter === 'admin' ? '管理员' : '普通用户'),
+      '黑名单筛选': blacklistFilter === 'all' ? '全部状态' : (blacklistFilter === '1' ? '已拉黑' : '正常'),
+      '搜索关键词': search || '无',
+      '当前页码': `${page}/${totalPages}`,
+    };
+    
+    exportToExcel(exportData, '用户积分管理', '用户列表', filterSummary);
     toast.success(`已导出 ${exportData.length} 条用户数据`);
   };
 

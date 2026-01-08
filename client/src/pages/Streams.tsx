@@ -103,7 +103,17 @@ export default function Streams() {
       'P_Eco得分': 0, // TODO: 添加pEcoScore字段到stream表
       '状态': item.stream.endTime ? '已结束' : '直播中',
     }));
-    exportToExcel(exportData, '直播监控-主播贡献', '主播列表');
+    
+    // 构建筛选条件摘要
+    const selectedStage = stages?.find(s => s.id === selectedStageId);
+    const filterSummary = {
+      exportTime: formatDateTime(new Date()),
+      stage: selectedStage ? selectedStage.stageName : '全部阶段',
+      status: filterValues.status || '全部状态',
+      '搜索关键词': filterValues.search || '无',
+    };
+    
+    exportToExcel(exportData, '直播监控-主播贡献', '主播列表', filterSummary);
     toast.success(`已导出 ${exportData.length} 条主播数据`);
   };
 
@@ -124,7 +134,16 @@ export default function Streams() {
       '打赏金额': viewer.gifts,
       'P_Eco得分': viewer.pEcoScore,
     }));
-    exportToExcel(exportData, '直播监控-观众贡献', '观众列表');
+    
+    // 构建筛选条件摘要
+    const selectedStage = stages?.find(s => s.id === selectedStageId);
+    const filterSummary = {
+      exportTime: formatDateTime(new Date()),
+      stage: selectedStage ? selectedStage.stageName : '全部阶段',
+      '搜索关键词': filterValues.search || '无',
+    };
+    
+    exportToExcel(exportData, '直播监控-观众贡献', '观众列表', filterSummary);
     toast.success(`已导出 ${exportData.length} 条观众数据`);
   };
 

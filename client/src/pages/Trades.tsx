@@ -53,7 +53,18 @@ export default function Trades() {
         '状态': item.trade.status === 'frozen' ? '已冻结' : '正常',
       };
     });
-    exportToExcel(exportData, '交易账本', '交易列表');
+    
+    // 构建筛选条件摘要
+    const selectedStage = stages?.find(s => s.id === selectedStageId);
+    const filterSummary = {
+      exportTime: formatDateTime(new Date()),
+      stage: selectedStage ? selectedStage.stageName : '全部阶段',
+      type: filterValues.tradeType ? (filterValues.tradeType === 'spot' ? '现货' : '合约') : '全部类型',
+      status: filterValues.status || '全部状态',
+      '搜索关键词': filterValues.search || '无',
+    };
+    
+    exportToExcel(exportData, '交易账本', '交易列表', filterSummary);
     toast.success(`已导出 ${exportData.length} 条交易数据`);
   };
   

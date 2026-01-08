@@ -118,7 +118,17 @@ export default function Tickets() {
       };
     });
     
-    exportToExcel(exportData, `P_Genesis工单列表_${new Date().toLocaleDateString()}`);
+    // 构建筛选条件摘要
+    const selectedStage = stages?.find(s => s.id === selectedStageId);
+    const filterSummary = {
+      exportTime: formatDateTime(new Date()),
+      stage: selectedStage ? selectedStage.stageName : '全部阶段',
+      type: filterType === 'all' ? '全部类型' : (typeLabels[filterType as keyof typeof typeLabels]?.label || filterType),
+      status: filterStatus === 'all' ? '全部状态' : (statusLabels[filterStatus as keyof typeof statusLabels]?.label || filterStatus),
+      '搜索关键词': searchQuery || '无',
+    };
+    
+    exportToExcel(exportData, `P_Genesis工单列表_${new Date().toLocaleDateString()}`, 'P_Genesis工单列表', filterSummary);
     toast.success("工单列表已导出");
   };
 
