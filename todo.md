@@ -1348,3 +1348,41 @@
 - ✅ 现在使用XLSX.utils.aoa_to_sheet创建筛选条件摘要（二维数组）
 - ✅ 然后使用XLSX.utils.sheet_add_json添加数据表格
 - ✅ 筛选条件摘要和数据表格现在是分离的，不会混在一起
+
+
+---
+
+## 🚀 2026-01-08 导出功能增强特性
+
+### 功能1：导出文件预览功能
+- [ ] 创建ExportPreviewDialog组件
+- [ ] 在对话框中显示筛选条件摘要
+- [ ] 显示将要导出的数据条数
+- [ ] 显示前10条数据预览
+- [ ] 提供"确认导出"和"取消"按钮
+- [ ] 集成到Tickets、Streams、Trades、Users页面
+
+### 功能2：自定义导出列功能
+- [ ] 创建ExportColumnSelector组件
+- [ ] 显示所有可导出的列，带复选框
+- [ ] 支持全选/取消全选
+- [ ] 记住用户的列选择偏好（localStorage）
+- [ ] 修改exportToExcel函数支持列过滤
+- [ ] 集成到导出预览对话框中
+
+### 功能3：导出历史记录
+- [ ] 创建exportHistory数据表（schema）
+- [ ] 添加exportHistory.create API（记录导出操作）
+- [ ] 添加exportHistory.list API（查询导出历史）
+- [ ] 创建ExportHistory页面
+- [ ] 在导航菜单中添加"导出历史"入口
+- [ ] 每次导出成功后自动记录到数据库
+
+### 实现步骤
+1. 创建导出预览对话框组件（ExportPreviewDialog.tsx）
+2. 创建自定义导出列选择组件（ExportColumnSelector.tsx）
+3. 修改数据库schema，添加exportHistory表
+4. 在server/routers.ts中添加exportHistory相关API
+5. 修改各页面的导出函数，集成预览和自定义列功能
+6. 创建ExportHistory页面显示导出历史记录
+7. 测试所有功能

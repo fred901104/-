@@ -26,12 +26,14 @@ export interface FilterSummary {
  * @param filename 文件名（不含扩展名）
  * @param sheetName 工作表名称
  * @param filterSummary 筛选条件摘要（可选）
+ * @param selectedColumns 选中的列键名数组（可选，不传则导出所有列）
  */
 export function exportToExcel<T extends Record<string, any>>(
   data: T[],
   filename: string,
   sheetName: string = 'Sheet1',
-  filterSummary?: FilterSummary
+  filterSummary?: FilterSummary,
+  selectedColumns?: string[]
 ) {
   // 创建工作簿
   const workbook = XLSX.utils.book_new();
@@ -73,12 +75,36 @@ export function exportToExcel<T extends Record<string, any>>(
     const worksheet = XLSX.utils.aoa_to_sheet(summaryData);
     
     // 然后添加数据表格
-    XLSX.utils.sheet_add_json(worksheet, data, { origin: -1, skipHeader: false });
+    const filteredData = selectedColumns && selectedColumns.length > 0
+      ? data.map(row => {
+          const filtered: any = {};
+          selectedColumns.forEach(col => {
+            if (col in row) {
+              filtered[col] = row[col];
+            }
+          });
+          return filtered;
+        })
+      : data;
+    
+    XLSX.utils.sheet_add_json(worksheet, filteredData, { origin: -1, skipHeader: false });
     
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   } else {
     // 没有筛选条件摘要，直接导出数据
-    const worksheet = XLSX.utils.json_to_sheet(data);
+    const filteredData = selectedColumns && selectedColumns.length > 0
+      ? data.map(row => {
+          const filtered: any = {};
+          selectedColumns.forEach(col => {
+            if (col in row) {
+              filtered[col] = row[col];
+            }
+          });
+          return filtered;
+        })
+      : data;
+    
+    const worksheet = XLSX.utils.json_to_sheet(filteredData);
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   }
 

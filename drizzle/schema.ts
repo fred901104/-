@@ -431,3 +431,24 @@ export const metricsStats = mysqlTable("metrics_stats", {
 
 export type MetricsStat = typeof metricsStats.$inferSelect;
 export type InsertMetricsStat = typeof metricsStats.$inferInsert;
+
+/**
+ * 导出历史记录表 - 记录所有数据导出操作
+ */
+export const exportHistories = mysqlTable("export_histories", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(), // 导出操作的用户ID
+  userName: varchar("user_name", { length: 128 }), // 导出操作的用户名
+  exportType: varchar("export_type", { length: 64 }).notNull(), // 导出类型：tickets/streams/trades/users等
+  exportTable: varchar("export_table", { length: 64 }).notNull(), // 导出的表名：反馈工单表/主播贡献表等
+  recordCount: int("record_count").notNull(), // 导出的记录数
+  columnCount: int("column_count").notNull(), // 导出的列数
+  filterConditions: text("filter_conditions"), // 筛选条件JSON字符串
+  selectedColumns: text("selected_columns"), // 选中的列JSON数组
+  filename: varchar("filename", { length: 255 }).notNull(), // 导出的文件名
+  fileSize: int("file_size"), // 文件大小（字节）
+  exportedAt: timestamp("exported_at").defaultNow().notNull(), // 导出时间
+});
+
+export type ExportHistory = typeof exportHistories.$inferSelect;
+export type InsertExportHistory = typeof exportHistories.$inferInsert;

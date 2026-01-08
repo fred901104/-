@@ -1474,6 +1474,103 @@ export const appRouter = router({
       return db.updatePointsConfig(input.id, { status: "ended", isActive: 0 });
     }),
   }),
+  
+  // 导出历史记录
+  exportHistory: router({
+    // 创建导出历史记录
+    create: protectedProcedure.input(z.object({
+      exportType: z.string(),
+      exportTable: z.string(),
+      recordCount: z.number(),
+      columnCount: z.number(),
+      filterConditions: z.string().optional(),
+      selectedColumns: z.string().optional(),
+      filename: z.string(),
+      fileSize: z.number().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const { db: dbModule } = await import("./db");
+      const { exportHistories } = await import("../drizzle/schema");
+      
+      const record = await dbModule.db.insert(exportHistories).values({
+        userId: ctx.user.id,
+        userName: ctx.user.name || ctx.user.nickname || '未知用户',
+        exportType: input.exportType,
+        exportTable: input.exportTable,
+        recordCount: input.recordCount,
+        columnCount: input.columnCount,
+        filterConditions: input.filterConditions,
+        selectedColumns: input.selectedColumns,
+        filename: input.filename,
+        fileSize: input.fileSize,
+      });
+      
+      return { success: true, id: record.insertId };
+    }),
+    
+    // 查询导出历史记录列表
+    list: protectedProcedure.input(z.object({
+      page: z.number().default(1),
+      pageSize: z.number().default(20),
+      exportType: z.string().optional(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+    })).query(async ({ input }) => {
+      const { db: dbModule } = await import("./db");
+      const { exportHistories } = await import("../drizzle/schema");
+      const { and, eq, gte, lte, desc } = await import("drizzle-orm");
+      
+      const conditions = [];
+      
+      if (input.exportType) {
+        conditions.push(eq(exportHistories.exportType, input.exportType));
+      }
+      if (input.startDate) {
+        conditions.push(gte(exportHistories.exportedAt, new Date(input.startDate)));
+      }
+      if (input.endDate) {
+        conditions.push(lte(exportHistories.exportedAt, new Date(input.endDate)));
+      }
+      
+      const offset = (input.page - 1) * input.pageSize;
+      
+      const records = await dbModule.db
+        .select()
+        .from(exportHistories)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(exportHistories.exportedAt))
+        .limit(input.pageSize)
+        .offset(offset);
+      
+      const [{ count }] = await dbModule.db
+        .select({ count: dbModule.sql<number>`count(*)` })
+        .from(exportHistories)
+        .where(conditions.length > 0 ? and(...conditions) : undefined);
+      
+      return {
+        records,
+        total: count,
+        page: input.page,
+        pageSize: input.pageSize,
+      };
+    }),
+    
+    // 获取导出统计信息
+    stats: protectedProcedure.query(async () => {
+      const { db: dbModule } = await import("./db");
+      const { exportHistories } = await import("../drizzle/schema");
+      const { sql } = await import("drizzle-orm");
+      
+      const [stats] = await dbModule.db
+        .select({
+          totalExports: sql<number>`count(*)`,
+          totalRecords: sql<number>`sum(${exportHistories.recordCount})`,
+          totalSize: sql<number>`sum(${exportHistories.fileSize})`,
+        })
+        .from(exportHistories);
+      
+      return stats;
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
