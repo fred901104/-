@@ -338,7 +338,7 @@ export default function Dashboard() {
         {/* Pie Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>各个池积分占比</CardTitle>
+            <CardTitle>各池已释放积分占比（该周期）</CardTitle>
             <CardDescription>
               P_Genesis / P_Eco / P_Trade 周期内，各个分池已经释放积分/对应池可释放积分的占比
             </CardDescription>
@@ -414,7 +414,7 @@ export default function Dashboard() {
         {/* Line Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>每日积分发放趋势（折线图）</CardTitle>
+            <CardTitle>每日积分发放趋势图</CardTitle>
             <CardDescription>
               近30天各维度积分发放情况
             </CardDescription>
@@ -463,7 +463,7 @@ export default function Dashboard() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>核心指标趋势（统一大图）</CardTitle>
+              <CardTitle>核心指标趋势图</CardTitle>
               <CardDescription>
                 查看各维度核心指标的变化趋势，点击图例可显示/隐藏指定指标
               </CardDescription>

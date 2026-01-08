@@ -28,13 +28,13 @@ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "总览仪表盘", path: "/" },
+  { icon: LayoutDashboard, label: "积分总览", path: "/" },
   { icon: Settings, label: "积分配置", path: "/points-config" },
-  { icon: FileText, label: "P_Genesis 工单管理", path: "/tickets" },
-  { icon: Radio, label: "P_Eco 直播监控", path: "/streams" },
-  { icon: TrendingUp, label: "P_Trade 交易账本", path: "/trades" },
+  { icon: FileText, label: "P_Genesis 创世池", path: "/tickets" },
+  { icon: Radio, label: "P_Eco 生态池", path: "/streams" },
+  { icon: TrendingUp, label: "P_Trade 交易池", path: "/trades" },
   { icon: Calculator, label: "结算中心", path: "/settlements" },
-  { icon: Users, label: "用户管理", path: "/users" },
+  { icon: Users, label: "用户积分管理", path: "/users" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
