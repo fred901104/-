@@ -643,6 +643,20 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const { stageBudgets } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const { TRPCError } = await import("@trpc/server");
+        
+        // 验证：同一时间只能有一个Active阶段
+        const activeStages = await db.select().from(stageBudgets)
+          .where(eq(stageBudgets.status, "active"));
+        
+        if (activeStages.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `已存在激活中的阶段配置（${activeStages[0].stageName}），请先结束或暂停现有配置`,
+          });
+        }
+        
         const [stage] = await db.insert(stageBudgets).values({
           stageName: input.stageName,
           totalBudget: input.totalBudget,
@@ -794,7 +808,47 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "阶段不存在" });
         }
 
-        // TODO: 验证时间范围不重叠
+        // 验证：必须是自然周（周一开始）
+        const startDay = input.startDate.getDay();
+        if (startDay !== 1) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "周配置必须从周一开始（自然周）",
+          });
+        }
+
+        // 验证：时间范围不重叠
+        const { and, or, lte, gte } = await import("drizzle-orm");
+        const overlappingRules = await db.select().from(weeklyReleaseRules)
+          .where(
+            and(
+              eq(weeklyReleaseRules.stageId, input.stageId),
+              or(
+                // 新配置的开始时间在现有配置范围内
+                and(
+                  lte(weeklyReleaseRules.startDate, input.startDate),
+                  gte(weeklyReleaseRules.endDate, input.startDate)
+                ),
+                // 新配置的结束时间在现有配置范围内
+                and(
+                  lte(weeklyReleaseRules.startDate, input.endDate),
+                  gte(weeklyReleaseRules.endDate, input.endDate)
+                ),
+                // 新配置完全包含现有配置
+                and(
+                  gte(weeklyReleaseRules.startDate, input.startDate),
+                  lte(weeklyReleaseRules.endDate, input.endDate)
+                )
+              )
+            )
+          );
+        
+        if (overlappingRules.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "该时间段与现有周配置重叠，请选择其他时间段",
+          });
+        }
 
         const [rule] = await db.insert(weeklyReleaseRules).values({
           stageId: input.stageId,

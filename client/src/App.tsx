@@ -10,7 +10,7 @@ import Streams from "./pages/Streams";
 import Trades from "./pages/Trades";
 import Settlements from "./pages/Settlements";
 import Users from "./pages/Users";
-import PointsConfig from "./pages/PointsConfig";
+import UnifiedPointsConfig from "./pages/UnifiedPointsConfig";
 import DashboardLayout from "./components/DashboardLayout";
 
 function Router() {
@@ -18,7 +18,7 @@ function Router() {
     <DashboardLayout>
       <Switch>
         <Route path={"/"} component={Dashboard} />
-        <Route path={"/points-config"} component={PointsConfig} />
+        <Route path={"/points-config"} component={UnifiedPointsConfig} />
         <Route path={"/tickets"} component={Tickets} />
         <Route path={"/streams"} component={Streams} />
         <Route path={"/trades"} component={Trades} />
