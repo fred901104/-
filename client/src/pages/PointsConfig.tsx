@@ -17,6 +17,8 @@ export default function PointsConfig() {
     phase: "S0",
     totalBudget: 1000000,
     weeklyPointsTarget: 100000,
+    startDate: "",
+    endDate: "",
     pGenesisPercent: "40",
     pEcoPercent: "40",
     pTradePercent: "20",
@@ -44,6 +46,46 @@ export default function PointsConfig() {
     },
   });
 
+  const activateMutation = trpc.pointsConfig.activate.useMutation({
+    onSuccess: () => {
+      toast.success("配置已激活");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(`激活失败: ${error.message}`);
+    },
+  });
+
+  const pauseMutation = trpc.pointsConfig.pause.useMutation({
+    onSuccess: () => {
+      toast.success("配置已暂停");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(`暂停失败: ${error.message}`);
+    },
+  });
+
+  const resumeMutation = trpc.pointsConfig.resume.useMutation({
+    onSuccess: () => {
+      toast.success("配置已恢复");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(`恢复失败: ${error.message}`);
+    },
+  });
+
+  const endMutation = trpc.pointsConfig.end.useMutation({
+    onSuccess: () => {
+      toast.success("配置已结束");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(`结束失败: ${error.message}`);
+    },
+  });
+
   const handleCreate = () => {
     // 验证百分比总和为100
     const total = parseFloat(formData.pGenesisPercent) + parseFloat(formData.pEcoPercent) + parseFloat(formData.pTradePercent);
@@ -51,11 +93,44 @@ export default function PointsConfig() {
       toast.error("三个池的百分比总和必须为100%");
       return;
     }
-    createMutation.mutate(formData);
+    
+    const payload: any = {
+      phase: formData.phase,
+      totalBudget: formData.totalBudget,
+      weeklyPointsTarget: formData.weeklyPointsTarget,
+      pGenesisPercent: formData.pGenesisPercent,
+      pEcoPercent: formData.pEcoPercent,
+      pTradePercent: formData.pTradePercent,
+    };
+    
+    if (formData.startDate) {
+      payload.startDate = new Date(formData.startDate);
+    }
+    if (formData.endDate) {
+      payload.endDate = new Date(formData.endDate);
+    }
+    
+    createMutation.mutate(payload);
   };
 
   const handleSetActive = (id: number) => {
     setActiveMutation.mutate({ id });
+  };
+
+  const handleActivate = (id: number) => {
+    activateMutation.mutate({ id });
+  };
+
+  const handlePause = (id: number) => {
+    pauseMutation.mutate({ id });
+  };
+
+  const handleResume = (id: number) => {
+    resumeMutation.mutate({ id });
+  };
+
+  const handleEnd = (id: number) => {
+    endMutation.mutate({ id });
   };
 
   return (
@@ -124,6 +199,33 @@ export default function PointsConfig() {
                 <p className="text-xs text-muted-foreground">
                   该阶段每周预计释放的积分总量（按自然周统计和结算）
                 </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">阶段开始时间</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    该阶段开始生效的日期（可选）
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endDate">阶段结束时间</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    该阶段结束生效的日期（可选）
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -233,12 +335,14 @@ export default function PointsConfig() {
               <TableHeader>
                 <TableRow>
                   <TableHead>阶段</TableHead>
-                  <TableHead>周期预计释放积分</TableHead>
+                  <TableHead>阶段总预算</TableHead>
+                  <TableHead>周期目标</TableHead>
+                  <TableHead>开始时间</TableHead>
+                  <TableHead>结束时间</TableHead>
                   <TableHead>P_Genesis</TableHead>
                   <TableHead>P_Eco</TableHead>
                   <TableHead>P_Trade</TableHead>
                   <TableHead>状态</TableHead>
-                  <TableHead>创建时间</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -246,37 +350,77 @@ export default function PointsConfig() {
                 {configs?.map((config) => (
                   <TableRow key={config.id}>
                     <TableCell className="font-medium">{config.phase}</TableCell>
-                    <TableCell className="font-semibold">{config.weeklyPointsTarget.toLocaleString()}</TableCell>
+                    <TableCell className="font-semibold">{config.totalBudget?.toLocaleString() || '-'}</TableCell>
+                    <TableCell>{config.weeklyPointsTarget.toLocaleString()}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {config.startDate ? new Date(config.startDate).toLocaleDateString("zh-CN") : '-'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {config.endDate ? new Date(config.endDate).toLocaleDateString("zh-CN") : '-'}
+                    </TableCell>
                     <TableCell className="text-purple-600">{config.pGenesisPercent}%</TableCell>
                     <TableCell className="text-blue-600">{config.pEcoPercent}%</TableCell>
                     <TableCell className="text-green-600">{config.pTradePercent}%</TableCell>
                     <TableCell>
-                      {config.isActive === 1 ? (
-                        <Badge className="gap-1">
+                      {config.status === 'active' ? (
+                        <Badge className="gap-1 bg-green-600">
                           <CheckCircle2 className="h-3 w-3" />
-                          激活中
+                          生效中
+                        </Badge>
+                      ) : config.status === 'paused' ? (
+                        <Badge variant="outline" className="gap-1 border-yellow-600 text-yellow-600">
+                          已暂停
+                        </Badge>
+                      ) : config.status === 'ended' ? (
+                        <Badge variant="outline" className="gap-1 border-gray-400 text-gray-400">
+                          已结束
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="gap-1">
                           <Circle className="h-3 w-3" />
-                          未激活
+                          草稿
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(config.createdAt).toLocaleString("zh-CN")}
-                    </TableCell>
                     <TableCell>
-                      {config.isActive !== 1 && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleSetActive(config.id)}
-                          disabled={setActiveMutation.isPending}
-                        >
-                          激活
-                        </Button>
-                      )}
+                      <div className="flex gap-2">
+                        {config.status === 'draft' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleActivate(config.id)}
+                          >
+                            激活
+                          </Button>
+                        )}
+                        {config.status === 'active' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handlePause(config.id)}
+                          >
+                            暂停
+                          </Button>
+                        )}
+                        {config.status === 'paused' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleResume(config.id)}
+                            >
+                              恢复
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEnd(config.id)}
+                            >
+                              结束
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
