@@ -273,6 +273,8 @@ export const appRouter = router({
         amount: pointsRecords.amount,
         userName: users.name,
         userOpenId: users.openId,
+        ticketId: tickets.id,
+        ticketType: tickets.type,
       }).from(pointsRecords)
         .leftJoin(users, eq(pointsRecords.userId, users.id))
         .leftJoin(tickets, eq(pointsRecords.relatedId, tickets.id))
@@ -286,6 +288,10 @@ export const appRouter = router({
         currentPeriodPoints: number;
         totalPoints: number;
         stagePoints: Record<string, number>;
+        bugCount: number;
+        suggestionCount: number;
+        bugTicketIds: number[];
+        suggestionTicketIds: number[];
       }>();
       
       for (const record of genesisRecords) {
@@ -299,6 +305,10 @@ export const appRouter = router({
             currentPeriodPoints: 0,
             totalPoints: 0,
             stagePoints: {},
+            bugCount: 0,
+            suggestionCount: 0,
+            bugTicketIds: [],
+            suggestionTicketIds: [],
           });
         }
         
@@ -321,10 +331,51 @@ export const appRouter = router({
             userPoints.stagePoints[stageName] += record.amount;
           }
         }
+        
+        // 统计BUG反馈数和建议数
+        if (record.ticketId && record.ticketType) {
+          if (record.ticketType === 'bug' && !userPoints.bugTicketIds.includes(record.ticketId)) {
+            userPoints.bugCount++;
+            userPoints.bugTicketIds.push(record.ticketId);
+          } else if (record.ticketType === 'suggestion' && !userPoints.suggestionTicketIds.includes(record.ticketId)) {
+            userPoints.suggestionCount++;
+            userPoints.suggestionTicketIds.push(record.ticketId);
+          }
+        }
       }
       
       // 转换为数组并按当前周期积分排序
-      return Array.from(userPointsMap.values()).sort((a, b) => b.currentPeriodPoints - a.currentPeriodPoints);
+      return Array.from(userPointsMap.values()).map(({ bugTicketIds, suggestionTicketIds, ...rest }) => rest).sort((a, b) => b.currentPeriodPoints - a.currentPeriodPoints);
+    }),
+    
+    // 获取用户反馈记录下钻
+    userFeedbackDetails: protectedProcedure.input(z.object({
+      userId: z.number(),
+      type: z.enum(['bug', 'suggestion']),
+    })).query(async ({ input }) => {
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) return [];
+      
+      const { tickets, stageBudgets } = await import("../drizzle/schema");
+      const { eq, and } = await import("drizzle-orm");
+      
+      // 查询用户的反馈记录
+      const feedbackRecords = await db.select({
+        id: tickets.id,
+        title: tickets.title,
+        content: tickets.content,
+        status: tickets.status,
+        createdAt: tickets.createdAt,
+        stageId: tickets.stageId,
+      }).from(tickets)
+        .leftJoin(stageBudgets, eq(tickets.stageId, stageBudgets.id))
+        .where(and(
+          eq(tickets.userId, input.userId),
+          eq(tickets.type, input.type)
+        ));
+      
+      return feedbackRecords;
     }),
   }),
   
